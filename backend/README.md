@@ -44,6 +44,30 @@ $env:PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK="True"; & "$env:TEMP\artlas_venv\Scri
 The API will be available at [http://localhost:8000](http://localhost:8000).
 Interactive docs: [http://localhost:8000/docs](http://localhost:8000/docs).
 
+## Alembic Migrations
+```bash
+cd backend
+& "$env:TEMP\artlas_venv\Scripts\python.exe" -m alembic upgrade head
+```
+
+## Key Endpoints (Sprint 2)
+- Search:
+  - GET `/api/v1/search?query=...&top_k=10` (sémantique)
+  - GET `/api/v1/search/text?q=...&limit=20&offset=0` (fallback plein‑texte)
+- Moderation:
+  - POST `/api/v1/contributions/{id}/approve`
+  - POST `/api/v1/contributions/{id}/reject`
+- Versions & Listing:
+  - GET `/api/v1/contributions/{id}`
+  - GET `/api/v1/contributions/{id}/versions`
+  - GET `/api/v1/version/{version_id}`
+  - GET `/api/v1/contributions/query?limit=20&offset=0&status=APPROVED&sort_by=created_at&order=desc`
+
+## Rate Limiting
+- Register: 5 req/min
+- Login: 10 req/min
+- Upload: 20 req/min
+
 ## Configuration
 Environment variables are managed in `app/core/config.py`.
 Default credentials:

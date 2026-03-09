@@ -7,6 +7,8 @@ from sqlmodel import Session, select, create_engine
 from app.core.config import settings
 from app.models.all_models import DocumentVersion, DocumentPipelineStatus
 from app.services.storage import minio_client
+from app.services.embedding_tasks import embed_document
+import structlog
 
 # Use a synchronous engine for Celery tasks
 sync_engine = create_engine(settings.SQLALCHEMY_DATABASE_URI.replace("postgresql+asyncpg", "postgresql"))
@@ -22,13 +24,14 @@ def process_document_ocr(document_version_id: str):
     2. Runs PaddleOCR.
     3. Updates DB with extracted text.
     """
-    print(f"[OCR] Starting for document: {document_version_id}")
+    log = structlog.get_logger().bind(task="process_document_ocr", document_version_id=document_version_id)
+    log.info("start")
     
     with Session(sync_engine) as session:
         # Fetch document record
         doc = session.get(DocumentVersion, document_version_id)
         if not doc:
-            print(f"[OCR] Error: Document {document_version_id} not found.")
+            log.warning("document_not_found")
             return
         
         doc.pipeline_status = DocumentPipelineStatus.OCR_PROCESSING
@@ -39,7 +42,7 @@ def process_document_ocr(document_version_id: str):
         
         try:
             # 1. Download from MinIO
-            print(f"[OCR] Downloading {doc.storage_path}...")
+            log.info("downloading", path=doc.storage_path)
             minio_client.ensure_bucket_exists()
             minio_client.client.fget_object(
                 minio_client.bucket_name, 
@@ -48,7 +51,7 @@ def process_document_ocr(document_version_id: str):
             )
             
             # 2. Run OCR
-            print("[OCR] Running PaddleOCR...")
+            log.info("running_paddleocr")
             # PaddleOCR works best on images, but supports PDF via conversion internally or external tools
             # For this MVP, we assume PaddleOCR handles it or we might need pdf2image.
             # Note: PaddleOCR().ocr() takes image_path. 
@@ -71,10 +74,11 @@ def process_document_ocr(document_version_id: str):
             doc.pipeline_status = DocumentPipelineStatus.READY # Skip Embedding for now (Sprint 1)
             session.add(doc)
             session.commit()
-            print(f"[OCR] Success! Extracted {len(extracted_text)} chars.")
+            log.info("ocr_success", chars=len(extracted_text))
+            embed_document.delay(str(doc_version_id))
 
         except Exception as e:
-            print(f"[OCR] Failed: {e}")
+            log.error("ocr_failed", error=str(e))
             doc.pipeline_status = DocumentPipelineStatus.FAILED
             session.add(doc)
             session.commit()

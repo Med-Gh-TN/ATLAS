@@ -8,6 +8,7 @@ from app.db.session import get_session
 from app.models.all_models import User, UserCreate, UserRead
 from app.core import security
 from app.core.config import settings
+from app.core.limits import limiter
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
@@ -32,7 +33,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), session: AsyncSe
         raise credentials_exception
     return user
 
-@router.post("/register", response_model=UserRead)
+@router.post("/register", response_model=UserRead, dependencies=[Depends(limiter(5, 60))])
 async def register(user_in: UserCreate, session: AsyncSession = Depends(get_session)):
     # Check if user exists
     result = await session.execute(select(User).where(User.email == user_in.email))
@@ -60,7 +61,7 @@ async def register(user_in: UserCreate, session: AsyncSession = Depends(get_sess
         await session.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/login")
+@router.post("/login", dependencies=[Depends(limiter(10, 60))])
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), session: AsyncSession = Depends(get_session)):
     result = await session.execute(select(User).where(User.email == form_data.username))
     user = result.scalars().first()
