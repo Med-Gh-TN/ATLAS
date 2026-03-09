@@ -9,6 +9,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
@@ -110,10 +111,10 @@ export default function LoginForm() {
             <label htmlFor="password" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
               Mot de passe
             </label>
-            {/* Will wire this to the forgot password flow later */}
-            <a href="/forgot-password" className="text-sm font-medium text-blue-600 hover:text-blue-500">
+            {/* FIXED: Using Next.js Link instead of a tag */}
+            <Link href="/forgot-password" className="text-sm font-medium text-blue-600 hover:text-blue-500">
               Mot de passe oublié ?
-            </a>
+            </Link>
           </div>
           <input
             id="password"

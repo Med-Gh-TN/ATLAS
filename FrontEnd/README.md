@@ -138,7 +138,39 @@ Below are the exact endpoints the frontend is calling, including the expected re
 
 *(Note: The frontend relies on the `role` field to route the user to `/dashboard` or `/teacher`).*
 
-### D. Teacher Batch Import (Admin)
+### D. Password Reset Flow
+
+**`POST /auth/forgot-password`**
+
+* **Trigger:** User submits their email on the `/forgot-password` page to request a reset OTP.
+* **Expected Payload:**
+
+```json
+{
+  "email": "etudiant@fss.rnu.tn"
+}
+
+```
+
+* **Expected Response:** `200 OK`.
+
+**`POST /auth/reset-password`**
+
+* **Trigger:** User submits the 6-digit OTP and their new password on the `/reset-password` page.
+* **Expected Payload:**
+
+```json
+{
+  "email": "etudiant@fss.rnu.tn",
+  "otp": "123456",
+  "newPassword": "NewStrongPassword123!"
+}
+
+```
+
+* **Expected Response:** `200 OK`. (Frontend will redirect user to `/login`).
+
+### E. Teacher Batch Import (Admin)
 
 **`POST /admin/teachers/import`**
 
@@ -157,7 +189,7 @@ Below are the exact endpoints the frontend is calling, including the expected re
 
 ```
 
-### E. Teacher Activation
+### F. Teacher Activation
 
 **`POST /auth/activate/teacher`**
 
@@ -177,7 +209,7 @@ Below are the exact endpoints the frontend is calling, including the expected re
 
 * **Expected Response:** `200 OK`.
 
-### F. Course Upload Pipeline
+### G. Course Upload Pipeline
 
 **`POST /courses/upload`**
 
@@ -195,6 +227,42 @@ Below are the exact endpoints the frontend is calling, including the expected re
 * **Upload Progress:** Axios is tracking the upload progress on the frontend. Please ensure your endpoint accepts the stream efficiently.
 * **Expected Response:** `200 OK` (or `409 Conflict` with a specific `message` if duplicate SimHash is detected).
 
+### H. Teacher "Mes Cours" Dashboard
+
+**`GET /teacher/courses`**
+
+* **Trigger:** Teacher accesses the "Mes Cours" dashboard to view their historical uploads and the current AI pipeline status.
+* **Expected Payload:** None (Relies entirely on the `httpOnly` JWT cookies for authorization).
+* **Expected Response:** `200 OK` with an array of courses.
+
+```json
+[
+  {
+    "id": "course-uuid-1",
+    "originalFileName": "Architecture_SI_Chap1.pdf",
+    "filiere": "Informatique",
+    "niveau": "M2",
+    "versionNumber": 1,
+    "status": "INDEXED", 
+    "createdAt": "2026-03-09T10:00:00Z"
+  },
+  {
+    "id": "course-uuid-2",
+    "originalFileName": "TD_Algorithmique.docx",
+    "filiere": "Informatique",
+    "niveau": "L1",
+    "versionNumber": 1,
+    "status": "PROCESSING",
+    "createdAt": "2026-03-09T11:30:00Z"
+  }
+]
+
+```
+
+*(Note: Valid statuses the UI expects are `PENDING`, `PROCESSING`, `INDEXED`, and `FAILED`)*.
+
 ---
 
 *Document generated for Sprint 1 Integration.*
+
+```

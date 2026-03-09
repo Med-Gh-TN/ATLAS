@@ -59,3 +59,18 @@ export const resetPasswordSchema = z.object({
 });
 
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
+// NEW: Schema for the actual password reset action
+export const resetPasswordConfirmSchema = z.object({
+  pin: z
+    .string()
+    .length(6, { message: "Le code OTP doit contenir exactement 6 chiffres." })
+    .regex(/^\d+$/, { message: "Le code OTP ne doit contenir que des chiffres." }),
+  password: z
+    .string()
+    .min(8, { message: "Le mot de passe doit contenir au moins 8 caractères." })
+    .regex(/[A-Z]/, { message: "Le mot de passe doit contenir au moins une majuscule." })
+    .regex(/[0-9]/, { message: "Le mot de passe doit contenir au moins un chiffre." }),
+});
+
+export type ResetPasswordConfirmInput = z.infer<typeof resetPasswordConfirmSchema>;
