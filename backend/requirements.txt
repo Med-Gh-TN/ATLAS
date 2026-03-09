@@ -1,0 +1,17 @@
+
+fastapi
+uvicorn[standard]
+sqlmodel
+asyncpg
+psycopg2-binary
+pydantic-settings
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+minio
+redis
+celery
+requests
+email-validator
+pytest
+httpx
