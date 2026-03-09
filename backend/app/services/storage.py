@@ -1,6 +1,7 @@
 
 import io
 import hashlib
+import time
 from minio import Minio
 from minio.error import S3Error
 from app.core.config import settings
@@ -14,14 +15,22 @@ class MinioClient:
             secure=settings.MINIO_SECURE
         )
         self.bucket_name = settings.MINIO_BUCKET_NAME
-        self._ensure_bucket_exists()
 
-    def _ensure_bucket_exists(self):
-        if not self.client.bucket_exists(self.bucket_name):
-            self.client.make_bucket(self.bucket_name)
+    def ensure_bucket_exists(self, retries: int = 5, delay_seconds: int = 2):
+        last_error = None
+        for _ in range(retries):
+            try:
+                if not self.client.bucket_exists(self.bucket_name):
+                    self.client.make_bucket(self.bucket_name)
+                return
+            except Exception as exc:
+                last_error = exc
+                time.sleep(delay_seconds)
+        raise last_error
 
     def upload_file(self, file_data: bytes, file_name: str, content_type: str) -> str:
         try:
+            self.ensure_bucket_exists()
             result = self.client.put_object(
                 self.bucket_name,
                 file_name,
@@ -34,6 +43,7 @@ class MinioClient:
             raise Exception(f"Failed to upload to MinIO: {e}")
 
     def get_file_url(self, object_name: str) -> str:
+        self.ensure_bucket_exists()
         return self.client.presigned_get_object(self.bucket_name, object_name)
 
 minio_client = MinioClient()

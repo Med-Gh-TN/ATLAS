@@ -43,19 +43,22 @@ async def register(user_in: UserCreate, session: AsyncSession = Depends(get_sess
             detail="User with this email already exists"
         )
     
-    # Create new user
-    user = User(
-        email=user_in.email,
-        full_name=user_in.full_name,
-        role=user_in.role,
-        filiere=user_in.filiere,
-        level=user_in.level,
-        hashed_password=security.get_password_hash(user_in.password)
-    )
-    session.add(user)
-    await session.commit()
-    await session.refresh(user)
-    return user
+    try:
+        user = User(
+            email=user_in.email,
+            full_name=user_in.full_name,
+            role=user_in.role,
+            filiere=user_in.filiere,
+            level=user_in.level,
+            hashed_password=security.get_password_hash(user_in.password)
+        )
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+        return user
+    except Exception as e:
+        await session.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/login")
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), session: AsyncSession = Depends(get_session)):

@@ -23,22 +23,23 @@ Run the following command in the root directory to start Postgres, MinIO, and Re
 docker-compose up -d
 ```
 
-### 2. Install Dependencies
+### 2. Install Dependencies (Windows PowerShell)
 ```bash
 cd backend
-pip install -r requirements.txt
+python -m venv $env:TEMP\artlas_venv
+& "$env:TEMP\artlas_venv\Scripts\python.exe" -m pip install -r requirements.txt
 ```
 
 ### 3. Run the API
 ```bash
-uvicorn app.main:app --reload
+& "$env:TEMP\artlas_venv\Scripts\python.exe" -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 ### 4. Run Celery Worker
 Open a new terminal and run:
 ```bash
 cd backend
-celery -A app.core.celery_app worker --loglevel=info
+$env:PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK="True"; & "$env:TEMP\artlas_venv\Scripts\python.exe" run_celery.py -A app.core.celery_app worker --loglevel=info
 ```
 The API will be available at [http://localhost:8000](http://localhost:8000).
 Interactive docs: [http://localhost:8000/docs](http://localhost:8000/docs).

@@ -13,7 +13,7 @@ sync_engine = create_engine(settings.SQLALCHEMY_DATABASE_URI.replace("postgresql
 
 # Initialize PaddleOCR (downloads model on first run)
 # lang='fr' covers French and English mostly; for Arabic we might need 'ar' or separate passes
-ocr = PaddleOCR(use_angle_cls=True, lang='fr', show_log=False) 
+ocr = PaddleOCR(use_angle_cls=True, lang='fr') 
 
 @shared_task(name="process_document_ocr")
 def process_document_ocr(document_version_id: str):
@@ -40,6 +40,7 @@ def process_document_ocr(document_version_id: str):
         try:
             # 1. Download from MinIO
             print(f"[OCR] Downloading {doc.storage_path}...")
+            minio_client.ensure_bucket_exists()
             minio_client.client.fget_object(
                 minio_client.bucket_name, 
                 doc.storage_path, 
