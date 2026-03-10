@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -17,13 +16,13 @@ export default function LoginPage() {
     setError("")
     
     try {
-      const formData = new FormData()
+      // Use URLSearchParams for application/x-www-form-urlencoded encoding
+      const formData = new URLSearchParams()
       formData.append('username', email)
       formData.append('password', password)
       
-      const response = await api.post('/auth/login', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
+      // Axios automatically sets the correct header for URLSearchParams
+      const response = await api.post('/auth/login', formData)
       
       const { access_token } = response.data
       localStorage.setItem('token', access_token)

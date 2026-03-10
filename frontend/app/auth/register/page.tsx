@@ -1,4 +1,4 @@
-
+// frontend/app/auth/register/page.tsx
 "use client"
 
 import { useState } from "react"
@@ -15,7 +15,8 @@ export default function RegisterPage() {
     password: "",
     full_name: "",
     filiere: FILIERES[0],
-    level: LEVELS[0]
+    level: LEVELS[0],
+    role: "STUDENT" // FIXED: Explicitly passing role to satisfy Pydantic UserCreate
   })
   const [error, setError] = useState("")
   const router = useRouter()
