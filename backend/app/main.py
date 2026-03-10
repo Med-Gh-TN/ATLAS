@@ -1,9 +1,8 @@
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.logging_config import configure_logging
-from app.api.v1.endpoints import auth, upload, search, moderation
+from app.api.v1.endpoints import auth, upload, search, moderation, admin
 from app.db.session import init_db
 
 app = FastAPI(
@@ -24,6 +23,7 @@ app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["aut
 app.include_router(upload.router, prefix=f"{settings.API_V1_STR}/contributions", tags=["contributions"])
 app.include_router(search.router, prefix=f"{settings.API_V1_STR}", tags=["search"])
 app.include_router(moderation.router, prefix=f"{settings.API_V1_STR}", tags=["moderation"])
+app.include_router(admin.router, prefix=f"{settings.API_V1_STR}", tags=["admin"])
 
 @app.on_event("startup")
 async def on_startup():
