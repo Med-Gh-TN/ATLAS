@@ -1,13 +1,16 @@
-from typing import List
-from fastapi import APIRouter, UploadFile, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.session import get_session
-from app.core.rbac import require_roles
-from app.models.new.user import User, UserRole, UserCreate
-from app.core.security import get_password_hash
-import pandas as pd
 import io
 import uuid
+
+import pandas as pd
+from fastapi import APIRouter, UploadFile, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
+from app.db.session import get_session
+from app.core.rbac import require_roles
+from app.models.all_models import User, UserRole, OTPPurpose
+from app.core.security import get_password_hash
+from app.services.auth_service import create_email_otp
 
 router = APIRouter()
 
@@ -36,18 +39,11 @@ async def import_teachers(
         email = row['email']
         full_name = row['full_name']
         
-        # Check if user exists
-        # Note: In a real batch, we'd query all emails at once for performance
-        # but for simplicity/ MVP we iterate.
-        # Ideally, move this to a service.
-        from sqlalchemy.future import select
         existing = await session.execute(select(User).where(User.email == email))
         if existing.scalars().first():
             results["errors"].append(f"Row {index}: Email {email} already exists")
             continue
             
-        # Create Teacher Account
-        # Generate a random temporary password
         temp_password = uuid.uuid4().hex[:12]
         
         new_user = User(
@@ -56,13 +52,12 @@ async def import_teachers(
             hashed_password=get_password_hash(temp_password),
             role=UserRole.TEACHER,
             is_active=True,
-            is_verified=True # Admin imported, so verified
+            is_verified=False
         )
         session.add(new_user)
         results["imported"] += 1
-        
-        # TODO: Send email with temp_password via Resend API
-        # email_service.send_invite(email, temp_password)
+        await session.flush()
+        await create_email_otp(session=session, user=new_user, purpose=OTPPurpose.TEACHER_INVITE)
 
     await session.commit()
     return results

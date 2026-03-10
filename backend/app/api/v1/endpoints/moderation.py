@@ -2,16 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.db.session import get_session
-from app.models.new.user import User, UserRole
-from app.models.new.contribution import Contribution, ContributionStatus
-from app.models.new.gamification import XPTransaction, XPTransactionType
+from app.models.all_models import User, UserRole, Contribution, ContributionStatus, XPTransaction, XPTransactionType
 from app.core.rbac import require_roles
 
 router = APIRouter()
-
-def _require_role(user: User, roles: list[str]):
-    if user.role not in roles:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
 @router.post("/contributions/{contribution_id}/approve")
 async def approve(contribution_id: str, current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.TEACHER)), session: AsyncSession = Depends(get_session)):
@@ -26,7 +20,6 @@ async def approve(contribution_id: str, current_user: User = Depends(require_rol
     c.status = ContributionStatus.APPROVED
     session.add(c)
 
-    # Award +50 XP to the uploader
     xp = XPTransaction(
         user_id=c.uploader_id,
         amount=50,

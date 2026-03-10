@@ -1,4 +1,3 @@
-from typing import List
 import sqlalchemy as sa
 from fastapi import APIRouter, HTTPException, Query, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,25 +12,64 @@ def _embed_query(q: str):
         from sentence_transformers import SentenceTransformer
     except Exception:
         raise HTTPException(status_code=503, detail="Embeddings unavailable")
-    m = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+    m = SentenceTransformer("sentence-transformers/paraphrase-multilingual-mpnet-base-v2")
     v = m.encode([q], normalize_embeddings=True)[0].tolist()
     return v
 
 @router.get("/search")
-async def semantic_search(query: str = Query(...), top_k: int = Query(10, ge=1, le=50), session: AsyncSession = Depends(get_session)):
+async def search(query: str = Query(...), top_k: int = Query(10, ge=1, le=50), session: AsyncSession = Depends(get_session)):
     vec = _embed_query(query)
-    sql = sa.text("""
-        SELECT dv.id as document_version_id, c.title as title, 1 - (e.vector <=> :q) as score
+    sem_sql = sa.text("""
+        SELECT dv.id as document_version_id, c.title as title, MIN(e.vector <=> :q) as dist
         FROM documentembedding e
         JOIN documentversion dv ON dv.id = e.document_version_id
         JOIN contribution c ON c.id = dv.contribution_id
         WHERE c.status = 'APPROVED'
-        ORDER BY e.vector <=> :q
+        GROUP BY dv.id, c.title
+        ORDER BY MIN(e.vector <=> :q)
         LIMIT :k
     """)
-    res = await session.execute(sql.bindparams(sa.bindparam("q", value=vec), sa.bindparam("k", value=top_k)))
-    rows = res.mappings().all()
-    return rows
+    sem_res = await session.execute(sem_sql.bindparams(sa.bindparam("q", value=vec), sa.bindparam("k", value=top_k * 5)))
+    sem_rows = sem_res.mappings().all()
+
+    lex_sql = sa.text("""
+        SELECT dv.id as document_version_id, c.title as title,
+               ts_rank_cd(
+                   to_tsvector('simple', coalesce(c.title,'') || ' ' || coalesce(dv.ocr_text,'')),
+                   plainto_tsquery('simple', :qtext)
+               ) as rank
+        FROM documentversion dv
+        JOIN contribution c ON c.id = dv.contribution_id
+        WHERE c.status = 'APPROVED'
+          AND to_tsvector('simple', coalesce(c.title,'') || ' ' || coalesce(dv.ocr_text,'')) @@ plainto_tsquery('simple', :qtext)
+        ORDER BY rank DESC
+        LIMIT :k
+    """)
+    lex_res = await session.execute(lex_sql.bindparams(sa.bindparam("qtext", value=query), sa.bindparam("k", value=top_k * 5)))
+    lex_rows = lex_res.mappings().all()
+
+    k_rrf = 60
+    sem_rank = {r["document_version_id"]: i + 1 for i, r in enumerate(sem_rows)}
+    lex_rank = {r["document_version_id"]: i + 1 for i, r in enumerate(lex_rows)}
+
+    titles = {}
+    for r in sem_rows:
+        titles[r["document_version_id"]] = r["title"]
+    for r in lex_rows:
+        titles[r["document_version_id"]] = r["title"]
+
+    all_ids = set(sem_rank.keys()) | set(lex_rank.keys())
+    fused = []
+    for vid in all_ids:
+        s = 0.0
+        if vid in sem_rank:
+            s += 1.0 / (k_rrf + sem_rank[vid])
+        if vid in lex_rank:
+            s += 1.0 / (k_rrf + lex_rank[vid])
+        fused.append({"document_version_id": vid, "title": titles.get(vid), "score": s})
+
+    fused.sort(key=lambda x: x["score"], reverse=True)
+    return fused[:top_k]
 
 @router.get("/search/text")
 async def text_search(q: str = Query(...), limit: int = 20, offset: int = 0, session: AsyncSession = Depends(get_session)):

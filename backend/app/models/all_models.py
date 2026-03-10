@@ -1,13 +1,14 @@
-from app.models.new.user import User, UserRole, StudentLevel, UserBase, UserCreate, UserRead
-from app.models.new.contribution import Contribution, ContributionStatus, ContributionCreate, ContributionRead, DocumentVersion, DocumentPipelineStatus
-from app.models.new.embedding import DocumentEmbedding
-from app.models.new.gamification import XPTransaction, XPTransactionType
+from app.models.user import User, UserRole, StudentLevel, UserBase, UserCreate, UserRead, OTPToken, OTPPurpose
+from app.models.contribution import Contribution, ContributionStatus, ContributionCreate, ContributionRead, XPTransaction, XPTransactionType
+from app.models.course import DocumentVersion, DocumentPipelineStatus, Course, Department
+from app.models.embedding import DocumentEmbedding
 
-# Re-export for compatibility
 __all__ = [
     "User", "UserRole", "StudentLevel", "UserBase", "UserCreate", "UserRead",
     "Contribution", "ContributionStatus", "ContributionCreate", "ContributionRead",
     "DocumentVersion", "DocumentPipelineStatus",
     "DocumentEmbedding",
-    "XPTransaction", "XPTransactionType"
+    "XPTransaction", "XPTransactionType",
+    "OTPToken", "OTPPurpose",
+    "Course", "Department"
 ]

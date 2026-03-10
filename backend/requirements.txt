@@ -26,3 +26,5 @@ paddleocr
 langchain
 langchain-community
 pandas
+tiktoken
+pyotp
