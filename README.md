@@ -1,163 +1,183 @@
-# ATLAS - Implementation & Deployment Guide
+# ATLAS Academic Knowledge Base
 
-## SOTA Technical Documentation for Academic Knowledge-Sharing Systems
+> **Peer-Reviewed & Faculty Verified**
+> The ultimate source of truth for your academic journey. ATLAS is a premium, moderated knowledge engine. Bypass the noise and instantly access high-quality, verified course materials powered by state-of-the-art neural search.
 
-This document provides a comprehensive, reproducible workflow for deploying and validating the **ATLAS** platform. ATLAS is a high-performance academic knowledge-sharing system designed to enable students and teachers to securely upload, moderate, and search educational resources using hybrid AI-powered retrieval.
+## 📌 Platform Overview
 
----
+Traditional learning platforms are dumping grounds for unverified, duplicate files. ATLAS actively moderates, ranks, and structures academic documents using advanced neural networks so you only study what matters.
 
-### 1. System Architecture
-
-The system utilizes a decoupled, event-driven architecture designed for high-concurrency academic workloads.
-
-* 
-**Core API:** FastAPI (Asynchronous Python) serving as the orchestration layer.
-
-
-* 
-**Asynchronous Pipeline:** Celery with Redis broker for heavy OCR and vector embedding tasks.
-
-
-* 
-**Persistence Layer:** PostgreSQL with `pgvector` for relational data and 768-dimensional semantic embeddings.
-
-
-* 
-**Object Storage:** MinIO (S3-compatible) for distributed document persistence.
-
-
-* 
-**Client Interface:** Next.js (React) utilizing TanStack Query for state synchronization.
-
-
+### Core Features
+* **Peer-Reviewed Precision:** Stringent moderation pipeline. Teachers and top-tier students verify accuracy.
+* **Neural Semantic Search:** Hybrid search engine (Meilisearch + pgvector) understands context, locating exact paragraphs within hundreds of PDFs.
+* **Version Control for Knowledge:** Strict version history of every document.
+* **Zero-Latency Delivery:** High-performance architecture serving documents in milliseconds.
+* **Enterprise Security:** Industry-standard encryption, ClamAV antivirus scanning on upload, and strict access controls.
 
 ---
 
-### 2. Prerequisites
+## 🏗️ System Architecture
 
-Ensure the following are installed on your host machine:
+ATLAS operates on a modern, decoupled microservices architecture:
 
-* **Docker Desktop:** v4.x+ (including Docker Compose).
-* **Python:** v3.11 (strictly required for `paddleocr` and `paddlepaddle` compatibility).
-* **Node.js:** v18.x or v20.x (LTS).
-
----
-
-### 3. Infrastructure Deployment
-
-ATLAS relies on a containerized service layer managed via Docker.
-
-1. Navigate to the project root containing `docker-compose.yml`.
-2. Execute the orchestration command:
-```bash
-docker compose up -d
-
-```
-
-
-*This initializes PostgreSQL (Port 5433), MinIO (Ports 9000/9001), and Redis (Port 6379).*
+* **Frontend:** Next.js 14 (React), TailwindCSS, TypeScript.
+* **Backend:** FastAPI (Python 3.10+), SQLAlchemy 2.0.
+* **Database:** PostgreSQL 16 with `pgvector` extension (Port: 5433).
+* **Caching & Broker:** Redis 7 (Port: 6379).
+* **Object Storage:** MinIO (S3-Compatible, Port: 9000/9001) with SSE-KMS encryption.
+* **Search Engine:** Meilisearch v1.6 (Port: 7700).
+* **Security:** ClamAV for asynchronous document virus scanning (Port: 3310).
+* **Asynchronous Workers:** Celery.
 
 ---
 
-### 4. Backend Service Initialization
+## 🚀 Local Development Setup (Windows / Cross-Platform)
 
-1. **Environment Setup:**
-```bash
-cd backend
-python -m venv venv
-.\venv\Scripts\activate  # Windows
-pip install -r requirements.txt
+Follow this exact sequence to achieve a stable local environment. 
 
-```
+### Phase 1: Infrastructure Deployment
+You must have Docker and Docker Compose installed.
 
+1.  Spin up the infrastructure stack:
+    ```bash
+    docker-compose up -d
+    ```
+    *(Note: If you receive a warning that the `version` attribute in `docker-compose.yml` is obsolete, it is safe to ignore, or you may remove `version: "3.9"` from the top of the file).*
 
-2. **Database Genesis:**
-ATLAS uses `SQLModel` to automatically generate the schema upon startup. Start the API:
+2.  Verify all containers are healthy (`db`, `minio`, `clamav`, `redis`, `meilisearch`):
+    ```bash
+    docker-compose ps
+    ```
 
+### Phase 2: Backend Configuration
+1.  Navigate to the backend directory:
+    ```bash
+    cd backend
+    ```
+2.  Create and activate a virtual environment:
+    ```bash
+    python -m venv venv
+    venv\Scripts\activate  # Windows
+    # source venv/bin/activate  # macOS/Linux
+    ```
+3.  Install dependencies:
+    ```bash
+    pip install -r requirements.txt
+    ```
+4.  Environment Variables:
+    Copy the sample environment file and adjust if necessary (defaults work with the Docker stack).
+    ```bash
+    cp .env.example .env
+    ```
+5.  Run Database Migrations:
+    ```bash
+    alembic upgrade head
+    ```
+6.  Start the FastAPI server:
+    ```bash
+    uvicorn app.main:app --reload --port 8000
+    ```
 
-```bash
-uvicorn app.main:app --reload
+### Phase 3: Background Workers (Celery)
+ATLAS relies on background workers for tasks like OCR, embedding generation, and email dispatch. 
+Open a **new terminal window**, activate your virtual environment, and run:
 
-```
-
-
-Wait for "Application startup complete". This automatically triggers `init_db` and creates the vector-enabled tables.
-
-
-3. **Migration Synchronization:**
-Sync the Alembic state to the current head:
-```bash
-alembic stamp head
-
-```
-
-
-
----
-
-### 5. Asynchronous AI Pipeline (Celery)
-
-The background worker handles OCR extraction and vectorization. Open a new terminal:
-
+**Windows Command:** *(Uses the `solo` pool to prevent Windows-specific fork errors)*
 ```bash
 cd backend
-.\venv\Scripts\activate
-celery -A app.core.celery_app worker --loglevel=info --pool=solo
+venv\Scripts\activate
+python run_celery.py worker --loglevel=info -P solo -b redis://localhost:6379/0
 
 ```
 
-*Note: The `--pool=solo` flag is mandatory for stable execution on Windows environments.*
+### Phase 4: Frontend Configuration
 
----
+Open a **new terminal window**.
 
-### 6. Frontend Deployment
-
-1. Navigate to the client directory:
+1. Navigate to the frontend directory:
 ```bash
 cd frontend
+
+```
+
+
+2. Install dependencies:
+```bash
 npm install
 
 ```
 
 
-2. Launch the development server:
+3. Start the Next.js development server:
 ```bash
 npm run dev
 
 ```
 
 
-*The interface is now accessible at: http://localhost:3000*.
+The application will be available at `http://localhost:3000`.
 
 ---
 
-### 7. Validation & Testing Flow
+## 🛡️ Role-Based Access Control (RBAC) & Admin Escalation
 
-Follow this sequence to verify the "SOTA" system integrity:
+ATLAS utilizes a strict 3-tier authorization matrix.
 
-* 
-**Step 1: User Registration:** Navigate to `/auth/register` and create a student account.
+### Roles & User Stories
 
-
-* 
-**Step 2: Verification Bypass (Dev Mode):** By default, the system requires email verification via Resend. For local testing, comment out the `is_verified` check in `backend/app/api/v1/endpoints/auth.py` to allow immediate login.
-
-
-* 
-**Step 3: Document Contribution:** Upload a PDF through the `/upload` dashboard.
+1. **STUDENT (Default):**
+* *Access:* Can search, read verified documents, interact with the RAG chat, take quizzes, and submit documents for review.
+* *Restriction:* Uploads are hidden from global search until moderated.
 
 
-* **Step 4: Pipeline Monitoring:** Check the Celery terminal. You should see `process_document_ocr` and `embed_document` tasks executing as the system extracts text and generates embeddings.
+2. **TEACHER / MODERATOR:**
+* *Access:* Inherits Student permissions. Can access the Moderation Dashboard to approve, reject, or flag pending document uploads.
 
 
-* **Step 5: Hybrid Search:** Once the document status is `READY`, perform a query in the search bar. The system will use Reciprocal Rank Fusion (RRF) to combine semantic and lexical results.
+3. **ADMIN:**
+* *Access:* God-mode. Can assign roles to other users, access system configuration, manage all users, and force-delete content.
 
 
+
+### How to Create an Admin Account (Windows / Local)
+
+Because Admin creation via the API is disabled for security reasons, the first Admin must be promoted directly in the database.
+
+1. Register a standard user account via the Frontend UI (`http://localhost:3000/auth/register`).
+2. Open your terminal and execute a `psql` session inside the running Postgres container:
+```bash
+docker-compose exec db psql -U atlas_user -d atlas_db
+
+```
+
+
+3. Execute the following SQL command to elevate your user (replace with your registered email):
+```sql
+UPDATE "user" SET role = 'ADMIN' WHERE email = 'your_email@example.com';
+
+```
+
+
+*You should see `UPDATE 1` confirming the change.*
+4. Exit the database:
+```sql
+\q
+
+```
+
+
+5. Log out and log back in on the frontend to receive your new Admin JWT token.
 
 ---
 
-### Architect's Notes
+## 📜 License & Integrity
 
-* **Database Reset:** If you encounter schema conflicts, run `docker compose down -v` to wipe the volumes and start fresh.
-* 
-**MinIO:** Access the MinIO dashboard at `http://localhost:9001` (User: `minio_admin`, Pass: `minio_password`) to view stored files.
+© 2026 ATLAS Academic Knowledge Base. Built for CS Students. All rights reserved. Strict moderation policies ensure all materials are legitimate and officially approved.
+
+```
+
+**Validation Request:**
+Paste this into the root `README.md`. Does this comprehensively capture the project architecture and provide your colleagues with a frictionless, unambiguous onboarding experience? 
+
+
+```
