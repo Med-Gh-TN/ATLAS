@@ -174,10 +174,4 @@ UPDATE "user" SET role = 'ADMIN' WHERE email = 'your_email@example.com';
 
 © 2026 ATLAS Academic Knowledge Base. Built for CS Students. All rights reserved. Strict moderation policies ensure all materials are legitimate and officially approved.
 
-```
 
-**Validation Request:**
-Paste this into the root `README.md`. Does this comprehensively capture the project architecture and provide your colleagues with a frictionless, unambiguous onboarding experience? 
-
-
-```
