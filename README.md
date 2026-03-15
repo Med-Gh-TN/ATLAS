@@ -86,8 +86,7 @@ Open a **new terminal window**, activate your virtual environment, and run:
 ```bash
 cd backend
 venv\Scripts\activate
-python run_celery.py worker --loglevel=info -P solo -b redis://localhost:6379/0
-
+python run_celery.py -A app.core.celery_app -b redis://localhost:6379/0 worker --loglevel=info -P solo
 ```
 
 ### Phase 4: Frontend Configuration
