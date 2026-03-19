@@ -40,6 +40,7 @@ export interface Contribution {
   description: string | null;
   status: ContributionStatus;
   uploader_id: string;
+  tags?: string[];
 }
 
 export interface DocumentVersion {
@@ -113,23 +114,17 @@ export interface PaginatedMeta {
   offset: number;
 }
 
-// Response from GET /api/v1/search (Semantic Search - pgvector)
-export interface SemanticSearchResult {
+// US-09: Unified Hybrid Search Response (Reciprocal Rank Fusion)
+export interface SearchResultItem {
   document_version_id: string;
   title: string;
-  score: number; // 1 - Cosine Distance
-}
-
-// Response from GET /api/v1/search/text (Full-Text Search)
-export interface TextSearchResultItem {
-  contribution_id: string;
-  title: string;
-  version_id: string;
-}
-
-export interface TextSearchResponse {
-  items: TextSearchResultItem[];
-  meta: PaginatedMeta;
+  teacher_name: string | null;
+  is_official: boolean;
+  quality_score: number | null;
+  snippet: string;
+  tags: string[];
+  filiere: string | null;
+  rrf_score: number;
 }
 
 // Response from GET /api/v1/contributions/query

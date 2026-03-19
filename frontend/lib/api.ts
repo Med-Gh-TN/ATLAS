@@ -128,10 +128,21 @@ api.interceptors.response.use(
         
         // DEFENSIVE ARCHITECTURE: Sync the Axios network failure with the React global state
         if (typeof window !== 'undefined') {
-          // This safely calls the Zustand store outside of a React component
           useAuthStore.getState().logout(); 
-          // Redirect the user to explicitly log back in
-          window.location.href = '/auth/login';
+          
+          // ARCHITECTURE FIX: Route Awareness.
+          // Only force a hard redirect if the user is sitting on a protected route.
+          // Public routes (like '/', '/about') should just silently degrade to an unauthenticated state.
+          const currentPath = window.location.pathname;
+          const isProtectedRoute = 
+            currentPath.startsWith('/search') || 
+            currentPath.startsWith('/upload') || 
+            currentPath.startsWith('/admin') || 
+            currentPath.startsWith('/document');
+
+          if (isProtectedRoute) {
+            window.location.href = '/auth/login?session_expired=true';
+          }
         }
         
         return Promise.reject(refreshError);

@@ -51,3 +51,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
   },
 }));
+
+// DEFENSIVE FIX: Provide default export to satisfy downstream dependents 
+// (ChatInterface, DocumentHeader, FlashcardReviewModal) while maintaining the named export.
+export default useAuthStore;

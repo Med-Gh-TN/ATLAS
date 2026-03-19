@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, PlusCircle, Search, Bot, User, Loader2, FileSearch } from 'lucide-react';
-import useAuthStore from '../../lib/store/useAuthStore';
+import api from '../../lib/api'; // ARCHITECTURE FIX: Use centralized api instance
 import CourseSearchModal from './CourseSearchModal';
 
 export interface ChatInterfaceProps {
@@ -19,8 +19,6 @@ interface Message {
 }
 
 export default function ChatInterface({ documentVersionId, onSourceClick }: ChatInterfaceProps) {
-  const token = useAuthStore((state) => state.token);
-  
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -35,23 +33,15 @@ export default function ChatInterface({ documentVersionId, onSourceClick }: Chat
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isThinking]);
 
-  // Initialize RAG Session
+  // ARCHITECTURE FIX: Initialize RAG Session using centralized Axios instance
   const initSession = async () => {
     setIsInitializing(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/rag/sessions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ document_version_id: documentVersionId })
+      const res = await api.post('/rag/sessions', { 
+        document_version_id: documentVersionId 
       });
       
-      if (!res.ok) throw new Error('Failed to initialize session');
-      
-      const data = await res.json();
-      setSessionId(data.session_id);
+      setSessionId(res.data.session_id);
       setMessages([{
         id: 'welcome',
         role: 'assistant',
@@ -60,6 +50,13 @@ export default function ChatInterface({ documentVersionId, onSourceClick }: Chat
       }]);
     } catch (error) {
       console.error('Session init error:', error);
+      // Fallback UI to let user know it failed
+      setMessages([{
+        id: 'error',
+        role: 'assistant',
+        content: "Désolé, je n'ai pas pu initialiser la session. Le serveur IA est peut-être indisponible.",
+        timestamp: new Date()
+      }]);
     } finally {
       setIsInitializing(false);
     }
@@ -95,6 +92,14 @@ export default function ChatInterface({ documentVersionId, onSourceClick }: Chat
     ]);
 
     try {
+      // ARCHITECTURE FIX: Using standard Fetch for Streaming, but pulling the token explicitly from localStorage to bypass Zustand hydration issues
+      const authStorage = localStorage.getItem('auth-storage');
+      let token = '';
+      if (authStorage) {
+        const parsed = JSON.parse(authStorage);
+        token = parsed?.state?.token || '';
+      }
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/rag/sessions/${sessionId}/messages`, {
         method: 'POST',
         headers: {

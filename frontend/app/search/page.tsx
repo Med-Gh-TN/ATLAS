@@ -1,50 +1,37 @@
+// frontend/app/search/page.tsx
 'use client';
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useState, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useDebounce } from 'use-debounce';
-import { Loader2, FolderSearch, Sparkles } from 'lucide-react';
+import { FolderSearch, ChevronDown, Clock } from 'lucide-react';
 
 import GlobalSearchBar from '../../components/search/GlobalSearchBar';
 import SearchSidebarFilters from '../../components/search/SearchSidebarFilters';
 import ResultCard from '../../components/search/ResultCard';
-import { useHybridSearch, useFilteredContributions } from '../../lib/hooks/useSearch';
+import SearchSkeleton from '../../components/search/SearchSkeleton';
+import { useHybridSearch, useFilteredContributions, useSearchState } from '../../lib/hooks/useSearch';
 
 // --- Sub-component to handle the URL-dependent logic cleanly ---
 function SearchResultsContent() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-
-  // Extract precise URL state for US-09 / US-10
-  const rawQuery = searchParams.get('q') || '';
-  const filiere = searchParams.get('filiere') || undefined;
-  const niveau = searchParams.get('niveau') || undefined;
-  const annee = searchParams.get('annee') || undefined;
-  const type_cours = searchParams.get('type_cours') || undefined;
-  const langue = searchParams.get('langue') || undefined;
   
-  // Parse boolean correctly from string
-  const isOfficialParam = searchParams.get('is_official');
-  const is_official = isOfficialParam === 'true' ? true : isOfficialParam === 'false' ? false : undefined;
+  // US-10: Use the centralized state hook instead of raw searchParams
+  const { currentParams } = useSearchState();
 
   // Defensive Architecture: 300ms Debounce to protect backend from typing spam
-  const [debouncedQuery] = useDebounce(rawQuery, 300);
+  const [debouncedQuery] = useDebounce(currentParams.q, 300);
 
   // Determine if we are actively searching or just browsing the default dashboard
-  const isSearching = !!debouncedQuery || !!niveau || !!filiere || !!type_cours || !!annee || is_official !== undefined;
+  const isSearching = !!debouncedQuery || !!currentParams.niveau || !!currentParams.filiere || !!currentParams.type_cours || !!currentParams.annee || currentParams.is_official !== undefined;
 
   // Execute Hybrid Search Engine (MeiliSearch + pgvector RRF)
   const { 
     data: hybridResults, 
     isLoading: isLoadingHybrid 
   } = useHybridSearch({
+    ...currentParams,
     q: debouncedQuery,
-    filiere,
-    niveau,
-    annee,
-    type_cours,
-    langue,
-    is_official,
     top_k: 20
   });
 
@@ -57,6 +44,7 @@ function SearchResultsContent() {
     !isSearching
   );
 
+  // US-10: PDF Preview Routing Validation (Navigates to viewer, does not trigger download)
   const handlePreview = (documentVersionId: string) => {
     router.push(`/document/${documentVersionId}`);
   };
@@ -64,31 +52,63 @@ function SearchResultsContent() {
   const isLoading = isSearching ? isLoadingHybrid : isLoadingRecent;
   
   // Normalize the data for rendering
-  const displayItems = isSearching 
-    ? hybridResults?.map(item => ({
-        id: item.document_version_id,
-        title: item.title,
-        teacherName: item.teacher_name || "ATLAS Contributor",
-        isOfficial: item.is_official,
-        qualityScore: item.quality_score,
-        snippet: item.snippet
-      })) || []
-    : recentContributions?.items.map(item => ({
-        id: item.id, // Fallback, will redirect to latest version in the preview route
-        title: item.title,
-        teacherName: "ATLAS Contributor", 
-        isOfficial: false,
-        qualityScore: 0,
-        snippet: "Document récemment ajouté."
-      })) || [];
+  const displayItems = useMemo(() => {
+    return isSearching 
+      ? hybridResults?.map(item => ({
+          id: item.document_version_id,
+          title: item.title,
+          teacherName: item.teacher_name || "ATLAS Contributor",
+          isOfficial: item.is_official,
+          qualityScore: item.quality_score || undefined,
+          snippet: item.snippet,
+          tags: item.tags,
+          academicYear: item.tags?.find(t => t.match(/^\d{4}-\d{4}$/)) // Naive extraction from tags if 'annee' isn't explicitly returned
+        })) || []
+      : recentContributions?.items.map(item => ({
+          id: item.id, // Fallback, will redirect to latest version in the preview route
+          title: item.title,
+          teacherName: "ATLAS Contributor", 
+          isOfficial: false,
+          qualityScore: undefined,
+          snippet: "Document récemment ajouté.",
+          tags: item.tags,
+          academicYear: undefined
+        })) || [];
+  }, [isSearching, hybridResults, recentContributions]);
+
+  // US-10: Chronological Grouping ("Années Précédentes" Accordion)
+  const groupedResults = useMemo(() => {
+    // Current date: March 18, 2026. Academic year is 2025-2026.
+    const currentAcademicYear = "2025-2026";
+    
+    const current = [];
+    const previous = [];
+
+    displayItems.forEach(item => {
+      // If the user explicitly filters by a specific year, treat everything as "Current View"
+      if (currentParams.annee) {
+        current.push(item);
+      } else if (!item.academicYear || item.academicYear === currentAcademicYear) {
+        current.push(item);
+      } else {
+        previous.push(item);
+      }
+    });
+
+    return { current, previous };
+  }, [displayItems, currentParams.annee]);
+
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-32 text-neutral-400 space-y-5">
-        <Sparkles className="h-8 w-8 animate-pulse text-neutral-300" />
-        <p className="text-sm font-medium tracking-wide">
-          {isSearching ? "Exécution de la recherche hybride..." : "Chargement de la bibliothèque..."}
-        </p>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between pb-2 border-b border-neutral-200/60 mb-6">
+          <div className="h-4 w-32 bg-neutral-200 rounded animate-pulse" />
+        </div>
+        {/* US-10: Render High-Fidelity Skeletons */}
+        {[1, 2, 3].map((i) => (
+          <SearchSkeleton key={`skel-${i}`} />
+        ))}
       </div>
     );
   }
@@ -109,14 +129,15 @@ function SearchResultsContent() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between pb-2 border-b border-neutral-200/60">
+      <div className="flex items-center justify-between pb-2 border-b border-neutral-200/60 mb-4">
         <h2 className="text-xs uppercase tracking-wider font-semibold text-neutral-500">
           {displayItems.length} Résultat{displayItems.length !== 1 ? 's' : ''} Trouvé{displayItems.length !== 1 ? 's' : ''}
         </h2>
       </div>
       
+      {/* Current/Relevant Results */}
       <div className="space-y-4">
-        {displayItems.map((item, idx) => (
+        {groupedResults.current.map((item, idx) => (
           <ResultCard
             key={`${item.id}-${idx}`}
             documentVersionId={item.id}
@@ -125,10 +146,47 @@ function SearchResultsContent() {
             qualityScore={item.qualityScore}
             isOfficial={item.isOfficial}
             snippet={item.snippet}
+            tags={item.tags}
             onPreview={handlePreview}
           />
         ))}
       </div>
+
+      {/* Accordion for Previous Years */}
+      {groupedResults.previous.length > 0 && (
+        <details className="group mt-12 bg-white rounded-2xl border border-neutral-200/60 shadow-sm overflow-hidden [&_summary::-webkit-details-marker]:hidden">
+          <summary className="flex items-center justify-between p-5 cursor-pointer hover:bg-neutral-50 transition-colors select-none">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center h-8 w-8 rounded-full bg-neutral-100 text-neutral-500">
+                <Clock className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-neutral-900">Archives des Années Précédentes</h3>
+                <p className="text-xs text-neutral-500 mt-0.5">{groupedResults.previous.length} document{groupedResults.previous.length !== 1 ? 's' : ''} plus ancien{groupedResults.previous.length !== 1 ? 's' : ''}</p>
+              </div>
+            </div>
+            <ChevronDown className="h-5 w-5 text-neutral-400 transition-transform duration-300 group-open:-rotate-180" />
+          </summary>
+          
+          <div className="p-5 pt-2 border-t border-neutral-100 bg-neutral-50/50">
+             <div className="space-y-4">
+               {groupedResults.previous.map((item, idx) => (
+                 <ResultCard
+                   key={`archived-${item.id}-${idx}`}
+                   documentVersionId={item.id}
+                   title={item.title}
+                   teacherName={item.teacherName}
+                   qualityScore={item.qualityScore}
+                   isOfficial={item.isOfficial}
+                   snippet={item.snippet}
+                   tags={item.tags}
+                   onPreview={handlePreview}
+                 />
+               ))}
+             </div>
+          </div>
+        </details>
+      )}
     </div>
   );
 }
@@ -170,7 +228,7 @@ export default function SearchPage() {
               <div className="space-y-4">
                 <div className="h-5 w-32 bg-neutral-200 rounded animate-pulse mb-8" />
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-32 w-full bg-white border border-neutral-100 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] animate-pulse" />
+                  <SearchSkeleton key={`fallback-skel-${i}`} />
                 ))}
               </div>
             }>

@@ -12,6 +12,8 @@ export interface ResultCardProps {
   relevanceScore?: number; // Semantic matching score (0-100)
   snippet?: string;
   tags?: string[];
+  /** US-05: Indicates if the uploader is a verified teacher via OTP */
+  isVerified?: boolean;
   onPreview: (id: string) => void;
 }
 
@@ -24,6 +26,7 @@ export default function ResultCard({
   relevanceScore,
   snippet,
   tags = [],
+  isVerified = false,
   onPreview,
 }: ResultCardProps) {
   return (
@@ -58,6 +61,14 @@ export default function ResultCard({
                   </>
                 )}
               </span>
+
+              {/* US-05: Verified Teacher Badge */}
+              {isVerified && (
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-100 font-bold text-[11px] uppercase tracking-wider">
+                  <BadgeCheck className="h-3 w-3" />
+                  Enseignant Vérifié
+                </span>
+              )}
 
               {relevanceScore !== undefined && (
                 <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-neutral-100 text-neutral-700 font-medium">

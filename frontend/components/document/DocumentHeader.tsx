@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, CheckCircle2, Clock, Calendar, User, BrainCircuit, Loader2, PlayCircle, Target, Flame } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Clock, Calendar, User, BrainCircuit, Loader2, PlayCircle, Target, Flame, BadgeCheck } from 'lucide-react';
 import useAuthStore from '../../lib/store/useAuthStore';
 import type { DocumentVersion, Contribution } from '../../types/api';
 import FlashcardReviewModal from './FlashcardReviewModal';
@@ -12,6 +12,10 @@ export interface DocumentHeaderProps {
   contribution: Contribution;
   /** The currently active document version containing the upload timestamp */
   currentVersion: DocumentVersion;
+  /** US-05: The name of the user who uploaded the document */
+  authorName?: string;
+  /** US-05: Indicates if the uploader is a verified teacher */
+  isVerified?: boolean;
 }
 
 interface DeckStats {
@@ -23,7 +27,7 @@ interface DeckStats {
 /**
  * Presentation component for the document metadata header, enhanced with AI Study Tool triggers.
  */
-export default function DocumentHeader({ contribution, currentVersion }: DocumentHeaderProps) {
+export default function DocumentHeader({ contribution, currentVersion, authorName = "Student Contributor", isVerified = false }: DocumentHeaderProps) {
   const router = useRouter();
   const token = useAuthStore((state) => state.token);
   
@@ -199,18 +203,27 @@ export default function DocumentHeader({ contribution, currentVersion }: Documen
 
           </div>
           
-          <div className="flex items-center gap-4 bg-neutral-50/80 p-4 rounded-xl border border-neutral-100 shrink-0 h-fit hidden md:flex">
-            <div className="w-10 h-10 bg-white border border-neutral-200 text-neutral-600 rounded-full flex items-center justify-center shadow-sm">
-              <User className="w-5 h-5" />
+          <div className="flex flex-col gap-2 bg-neutral-50/80 p-4 rounded-xl border border-neutral-100 shrink-0 h-fit hidden md:flex min-w-[200px]">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-white border border-neutral-200 text-neutral-600 rounded-full flex items-center justify-center shadow-sm">
+                <User className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-0.5">
+                  Author
+                </p>
+                <p className="text-sm font-semibold text-neutral-900 line-clamp-1">
+                  {authorName}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-0.5">
-                Author
-              </p>
-              <p className="text-sm font-semibold text-neutral-900">
-                Student Contributor
-              </p>
-            </div>
+            {/* US-05: Verified Teacher Badge rendered safely without CLS */}
+            {isVerified && (
+              <div className="flex items-center justify-center gap-1.5 mt-1 px-2.5 py-1.5 bg-blue-50 border border-blue-100 rounded-md">
+                <BadgeCheck className="w-4 h-4 text-blue-600" />
+                <span className="text-xs font-bold text-blue-700">Enseignant Vérifié</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

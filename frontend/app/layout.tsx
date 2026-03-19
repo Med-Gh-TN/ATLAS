@@ -49,34 +49,39 @@ export default function RootLayout({
           <GlobalFooter />
         </Providers>
 
-        {/* PWA & Push Notification Lifecycle Integration 
-          Injected strictly on the client to preserve Server Component architecture.
+        {/* DEFENSIVE ARCHITECTURE: PWA & Push Notification Lifecycle Integration 
+          Using dangerouslySetInnerHTML prevents SWC minifier corruption bugs 
+          caused by inline template literals and double-slash comments.
         */}
-        <Script id="service-worker-registry" strategy="afterInteractive">
-          {`
-            if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-              window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js').then(
-                  function(registration) {
-                    console.log('[ATLAS Architecture] Service Worker registered with scope: ', registration.scope);
-                  },
-                  function(err) {
-                    console.error('[ATLAS Architecture] Service Worker registration failed: ', err);
-                  }
-                );
-                
-                // US-16: Request notification permission for spaced-repetition reminders
-                if ('Notification' in window && Notification.permission === 'default') {
-                  Notification.requestPermission().then(function(permission) {
-                    if (permission === 'granted') {
-                      console.log('[ATLAS Architecture] Push Notification permission granted.');
+        <Script 
+          id="service-worker-registry" 
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').then(
+                    function(registration) {
+                      console.log('[ATLAS Architecture] Service Worker registered with scope: ', registration.scope);
+                    },
+                    function(err) {
+                      console.error('[ATLAS Architecture] Service Worker registration failed: ', err);
                     }
-                  });
-                }
-              });
-            }
-          `}
-        </Script>
+                  );
+                  
+                  /* US-16: Request notification permission for spaced-repetition reminders */
+                  if ('Notification' in window && Notification.permission === 'default') {
+                    Notification.requestPermission().then(function(permission) {
+                      if (permission === 'granted') {
+                        console.log('[ATLAS Architecture] Push Notification permission granted.');
+                      }
+                    });
+                  }
+                });
+              }
+            `
+          }}
+        />
       </body>
     </html>
   );

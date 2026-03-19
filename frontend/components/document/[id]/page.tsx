@@ -2,14 +2,24 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Archive, ChevronDown, ChevronUp, AlertCircle, Loader2, BookOpen } from 'lucide-react';
 
-// Adjust these imports based on your exact path aliases (e.g., '@/components/...' or '../../components/...')
+// Adjust these imports based on your exact path aliases
 import VersionTimeline from '@/components/document/VersionTimeline';
 import type { CourseVersion } from '@/types/api';
 
-// Mapped from your project tree: ATLAS-main/frontend/components/document/PdfViewer.tsx
-// import PdfViewer from '@/components/document/PdfViewer';
+// DEFENSIVE ARCHITECTURE: Dynamically import the PdfViewer to strictly bypass SSR.
+// This prevents the 'Object.defineProperty called on non-object' Node.js crash from pdfjs-dist.
+const PdfViewer = dynamic(() => import('@/components/document/PdfViewer'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex flex-col items-center justify-center w-full min-h-[600px] bg-neutral-50/50 rounded-2xl border border-neutral-100">
+      <Loader2 className="w-8 h-8 animate-spin text-neutral-300" />
+      <p className="text-sm font-medium text-neutral-500 mt-4 tracking-wide">Initialisation du moteur PDF...</p>
+    </div>
+  ),
+});
 
 export default function DocumentPage() {
   const params = useParams();
@@ -36,7 +46,6 @@ export default function DocumentPage() {
         setError(null);
 
         // Fetch Versions (Step 2 Endpoint)
-        // Replace with your standard axios/fetch wrapper from frontend/lib/api.ts
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/courses/${courseId}/versions`);
         
         if (!res.ok) {
@@ -69,11 +78,17 @@ export default function DocumentPage() {
   // --- Handlers ---
   const handleVersionSelect = (versionId: string) => {
     setCurrentVersionId(versionId);
-    // Here you would also update the PdfViewer to load the specific version's file
   };
 
   const toggleArchives = () => {
     setIsArchivesOpen((prev) => !prev);
+  };
+
+  // --- Helper to get file URL ---
+  const getFileUrlForVersion = (versionId: string) => {
+    const version = versions.find(v => v.version_id === versionId);
+    // Adjust this to match how your API returns the MinIO signed URL
+    return version?.file_url || ''; 
   };
 
   // --- Render States ---
@@ -113,15 +128,20 @@ export default function DocumentPage() {
         
         {/* Left Column: Document Viewer (2/3 width) */}
         <div className="col-span-1 lg:col-span-2 space-y-6">
-          <div className="bg-neutral-200 border border-neutral-300 rounded-2xl h-[800px] flex items-center justify-center shadow-inner">
-            {/* Integrate your actual PDF Viewer here. 
-              Pass the currently selected version's storage path or URL to it.
-              <PdfViewer versionId={currentVersionId} /> 
-            */}
-            <p className="text-neutral-500 font-medium flex flex-col items-center">
-              <BookOpen className="w-12 h-12 mb-4 text-neutral-400" />
-              Visionneuse PDF (Version Actuelle: {versions.find(v => v.version_id === currentVersionId)?.version_number})
-            </p>
+          <div className="bg-white border border-neutral-200 rounded-2xl h-[800px] flex items-center justify-center shadow-sm overflow-hidden">
+            {currentVersionId && getFileUrlForVersion(currentVersionId) ? (
+              <PdfViewer 
+                fileUrl={getFileUrlForVersion(currentVersionId)} 
+                targetPage={null} // To be connected to ChatInterface later
+                highlightedChunk={null}
+              />
+            ) : (
+              <div className="text-neutral-400 font-medium flex flex-col items-center text-center p-8">
+                <BookOpen className="w-12 h-12 mb-4 text-neutral-300" />
+                <p>Aucun fichier PDF disponible pour cette version.</p>
+                <p className="text-xs text-neutral-400 mt-2">(Vérifiez que l'URL signée MinIO est bien renvoyée par l'API)</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -158,7 +178,7 @@ export default function DocumentPage() {
 
             {/* Accordion Content */}
             {isArchivesOpen && (
-              <div className="mt-6 pt-6 border-t border-neutral-100 space-y-4">
+              <div className="mt-6 pt-6 border-t border-neutral-100 space-y-4 animate-in fade-in duration-200">
                 <p className="text-xs text-neutral-500 mb-4">
                   Versions du cours des années universitaires précédentes.
                 </p>
@@ -169,7 +189,6 @@ export default function DocumentPage() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {/* Placeholder for mapping actual archived courses */}
                     {archivedYears.map((archive, i) => (
                       <div key={i} className="flex items-center justify-between p-3 border border-neutral-100 rounded-lg hover:border-neutral-300 cursor-pointer transition-colors">
                         <span className="text-sm font-semibold text-neutral-700">{archive.academic_year}</span>

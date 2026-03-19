@@ -109,14 +109,13 @@ export default function LoginPage() {
       
       setGlobalUser(user)
       
-      // 4. Smart Role-Based Redirection (US-04)
+      // 4. Smart Role-Based Redirection (US-04 Spec Adherence)
       const role = user.role?.toUpperCase() || ""
-      if (role === "TEACHER") {
-        router.push('/upload') // espace cours proxy
-      } else if (role === "ADMIN") {
-        router.push('/admin/moderation')
+      if (role === "ADMIN") {
+        router.push('/admin')
       } else {
-        router.push('/search') // student dashboard proxy
+        // ARCHITECTURAL FIX: Both STUDENTS and TEACHERS map to the Dashboard layer
+        router.push('/dashboard') 
       }
       
     } catch (err) {

@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0F172A" />
+  <title>ATLAS — You're Offline</title>
+  <link rel="icon" href="/icons/icon-96x96.png" type="image/png" />
+  <style>
+    /* =========================================================
+       ATLAS OFFLINE PAGE
+       Design direction: Refined dark — matches manifest.json
+       background_color (#0F172A). Editorial grid layout.
+       IBM Plex Sans loaded via Google Fonts (cached by SW
+       on first visit; renders from cache when offline).
+       ========================================================= */
+
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+    /* --- Reset & Tokens --- */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #0F172A;
+      --bg-card:      #141E33;
+      --bg-subtle:    #1E2D4A;
+      --border:       rgba(255,255,255,0.07);
+      --border-lit:   rgba(255,255,255,0.14);
+      --text-primary: #F1F5F9;
+      --text-muted:   #64748B;
+      --text-dim:     #334155;
+      --accent:       #2563EB;
+      --accent-glow:  rgba(37, 99, 235, 0.25);
+      --amber:        #F59E0B;
+      --amber-glow:   rgba(245, 158, 11, 0.15);
+      --font-sans:    'IBM Plex Sans', system-ui, sans-serif;
+      --font-mono:    'IBM Plex Mono', monospace;
+    }
+
+    html, body {
+      height: 100%;
+      background-color: var(--bg);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    /* --- Noise texture overlay --- */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      background-size: 200px 200px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* --- Radial glow behind the card --- */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* --- Layout --- */
+    .page {
+      position: relative;
+      z-index: 1;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      grid-template-columns: 1fr;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* --- Top bar --- */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--text-primary);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-icon svg {
+      width: 18px;
+      height: 18px;
+      stroke: var(--bg);
+    }
+
+    .brand-name {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--text-primary);
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 12px;
+      background: var(--amber-glow);
+      border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      color: var(--amber);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      animation: pulse-pill 3s ease-in-out infinite;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--amber);
+      border-radius: 50%;
+      animation: pulse-dot 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.7); }
+    }
+    @keyframes pulse-pill {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
+      50%       { box-shadow: 0 0 12px 0 rgba(245,158,11,0.15); }
+    }
+
+    /* --- Main content --- */
+    .main {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 36px;
+      padding: 48px 0;
+    }
+
+    /* Error code — large typographic anchor */
+    .error-code {
+      font-family: var(--font-mono);
+      font-size: clamp(72px, 12vw, 120px);
+      font-weight: 500;
+      line-height: 1;
+      color: var(--text-dim);
+      letter-spacing: -0.03em;
+      user-select: none;
+      position: relative;
+    }
+
+    .error-code::after {
+      content: attr(data-text);
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--accent) 0%, #60A5FA 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      opacity: 0;
+      animation: flicker-in 0.8s ease 0.3s forwards;
+    }
+
+    @keyframes flicker-in {
+      0%   { opacity: 0; }
+      30%  { opacity: 0.6; }
+      50%  { opacity: 0.2; }
+      70%  { opacity: 0.8; }
+      100% { opacity: 1; }
+    }
+
+    .content-block {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-width: 540px;
+      animation: slide-up 0.6s cubic-bezier(0.16,1,0.3,1) 0.5s both;
+    }
+
+    @keyframes slide-up {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .headline {
+      font-size: clamp(22px, 4vw, 32px);
+      font-weight: 600;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+    }
+
+    .subtext {
+      font-size: 15px;
+      font-weight: 300;
+      line-height: 1.7;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* --- Actions --- */
+    .actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      animation: slide-up 0.6s cubic-bezier(0.16,1,0.3,1) 0.7s both;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 22px;
+      background: var(--accent);
+      color: #fff;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+      box-shadow: 0 0 0 0 var(--accent-glow);
+    }
+
+    .btn-primary:hover {
+      background: #1D4ED8;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 22px;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid var(--border-lit);
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+
+    .btn-secondary:hover {
+      color: var(--text-primary);
+      border-color: rgba(255,255,255,0.25);
+      background: var(--bg-subtle);
+    }
+
+    /* --- Diagnostic card --- */
+    .diag-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      max-width: 420px;
+      animation: slide-up 0.6s cubic-bezier(0.16,1,0.3,1) 0.9s both;
+    }
+
+    .diag-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .diag-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .diag-key {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    .diag-val {
+      font-size: 12px;
+      font-family: var(--font-mono);
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .diag-val.ok    { color: #4ADE80; background: rgba(74,222,128,0.08); }
+    .diag-val.error { color: #F87171; background: rgba(248,113,113,0.08); }
+    .diag-val.warn  { color: var(--amber); background: var(--amber-glow); }
+
+    .diag-divider {
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* --- Footer bar --- */
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 52px;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-text {
+      font-size: 11px;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+    }
+
+    .retry-hint {
+      font-size: 11px;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .retry-hint kbd {
+      padding: 2px 6px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-lit);
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    /* --- Responsive --- */
+    @media (max-width: 600px) {
+      .topbar { height: 56px; }
+      .retry-hint { display: none; }
+      .footer-text { font-size: 10px; }
+      .diag-card { max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <a href="/" class="brand" aria-label="ATLAS home">
+      <div class="brand-icon">
+        <!-- BookOpen icon — matches GlobalHeader.tsx -->
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+        </svg>
+      </div>
+      <span class="brand-name">ATLAS</span>
+    </a>
+
+    <div class="status-pill" role="status" aria-live="polite">
+      <span class="status-dot" aria-hidden="true"></span>
+      No Connection
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="main" role="main">
+
+    <div class="error-code" data-text="503" aria-hidden="true">503</div>
+
+    <div class="content-block">
+      <h1 class="headline">You're currently offline.</h1>
+      <p class="subtext">
+        ATLAS couldn't reach the network. Your cached study sessions, flashcard decks,
+        and previously viewed documents are still available.
+      </p>
+    </div>
+
+    <div class="actions">
+      <button class="btn-primary" onclick="window.location.reload()" aria-label="Try reconnecting">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        Try Again
+      </button>
+      <a href="/" class="btn-secondary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        Go Home
+      </a>
+    </div>
+
+    <!-- Live diagnostic card — populated by JS -->
+    <div class="diag-card" role="complementary" aria-label="Connection diagnostics">
+      <span class="diag-label">Diagnostics</span>
+
+      <div class="diag-row">
+        <span class="diag-key">network.status</span>
+        <span class="diag-val error" id="diag-network">offline</span>
+      </div>
+      <div class="diag-divider"></div>
+      <div class="diag-row">
+        <span class="diag-key">service_worker</span>
+        <span class="diag-val warn" id="diag-sw">checking…</span>
+      </div>
+      <div class="diag-divider"></div>
+      <div class="diag-row">
+        <span class="diag-key">cache.shell</span>
+        <span class="diag-val warn" id="diag-cache">checking…</span>
+      </div>
+      <div class="diag-divider"></div>
+      <div class="diag-row">
+        <span class="diag-key">timestamp</span>
+        <span class="diag-val ok" id="diag-time">—</span>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <span class="footer-text">© 2026 ATLAS Academic Knowledge Platform</span>
+    <span class="retry-hint">
+      Press <kbd>F5</kbd> to retry
+    </span>
+  </footer>
+
+</div>
+
+<script>
+  // ================================================================
+  // ATLAS Offline Page — Diagnostic Panel
+  // Runs entirely in the browser with no network calls.
+  // ================================================================
+
+  (function () {
+    'use strict';
+
+    // --- Timestamp ---
+    const timeEl = document.getElementById('diag-time');
+    if (timeEl) {
+      timeEl.textContent = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+    }
+
+    // --- Network status (live) ---
+    const networkEl = document.getElementById('diag-network');
+    function updateNetworkStatus() {
+      if (!networkEl) return;
+      if (navigator.onLine) {
+        networkEl.textContent = 'online';
+        networkEl.className = 'diag-val ok';
+      } else {
+        networkEl.textContent = 'offline';
+        networkEl.className = 'diag-val error';
+      }
+    }
+    updateNetworkStatus();
+    window.addEventListener('online',  updateNetworkStatus);
+    window.addEventListener('offline', updateNetworkStatus);
+
+    // --- Auto-reload when connection is restored ---
+    window.addEventListener('online', function () {
+      // Small delay so the network stack actually stabilises before reload.
+      setTimeout(function () { window.location.reload(); }, 800);
+    });
+
+    // --- Service Worker status ---
+    const swEl = document.getElementById('diag-sw');
+    if (swEl) {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration('/').then(function (reg) {
+          if (reg && reg.active) {
+            swEl.textContent = 'active';
+            swEl.className   = 'diag-val ok';
+          } else if (reg) {
+            swEl.textContent = 'installing';
+            swEl.className   = 'diag-val warn';
+          } else {
+            swEl.textContent = 'not registered';
+            swEl.className   = 'diag-val error';
+          }
+        }).catch(function () {
+          swEl.textContent = 'error';
+          swEl.className   = 'diag-val error';
+        });
+      } else {
+        swEl.textContent = 'unsupported';
+        swEl.className   = 'diag-val error';
+      }
+    }
+
+    // --- Cache status ---
+    const cacheEl = document.getElementById('diag-cache');
+    if (cacheEl) {
+      if ('caches' in window) {
+        caches.has('atlas-shell-v1').then(function (exists) {
+          if (exists) {
+            cacheEl.textContent = 'atlas-shell-v1';
+            cacheEl.className   = 'diag-val ok';
+          } else {
+            cacheEl.textContent = 'not primed';
+            cacheEl.className   = 'diag-val warn';
+          }
+        }).catch(function () {
+          cacheEl.textContent = 'unavailable';
+          cacheEl.className   = 'diag-val error';
+        });
+      } else {
+        cacheEl.textContent = 'unsupported';
+        cacheEl.className   = 'diag-val error';
+      }
+    }
+  }());
+</script>
+
+</body>
+</html>

@@ -16,14 +16,15 @@ const reasonSchema = z.object({
 
 type ReasonFormValues = z.infer<typeof reasonSchema>;
 
-export type ActionType = 'APPROVE' | 'REJECT' | 'REQUEST_REVISION' | null;
+export type ActionType = 'APPROVED' | 'REJECTED' | 'REVISION_REQUESTED' | null;
 
 export interface ModerationActionModalProps {
   isOpen: boolean;
   onClose: () => void;
   contributionId: string | null;
   contributionTitle: string;
-  actionType: ActionType;
+  // Adjusted ActionType mapping to strictly match the Backend Enums
+  actionType: 'APPROVE' | 'REJECT' | 'REQUEST_REVISION' | null; 
   onSuccess: () => void; // Triggered to refresh the TanStack Query cache
 }
 
@@ -58,16 +59,23 @@ export default function ModerationActionModal({
   const executeAction = async (data?: ReasonFormValues) => {
     setServerError(null);
     try {
-      if (actionType === 'APPROVE') {
-        await api.post(`/contributions/${contributionId}/approve`);
-      } else {
-        // Handle REJECT and REQUEST_REVISION
-        const formData = new URLSearchParams();
-        formData.append('reason', data?.reason || '');
-        
-        const endpoint = actionType === 'REJECT' ? 'reject' : 'request-revision';
-        await api.post(`/contributions/${contributionId}/${endpoint}`, formData);
-      }
+      // US-11: Map frontend action string to strict backend ContributionStatus Enum
+      const statusMap: Record<string, ActionType> = {
+        'APPROVE': 'APPROVED',
+        'REJECT': 'REJECTED',
+        'REQUEST_REVISION': 'REVISION_REQUESTED'
+      };
+
+      const targetStatus = statusMap[actionType];
+
+      // Construct JSON Payload for the unified PATCH endpoint
+      const payload = {
+        status: targetStatus,
+        rejection_reason: data?.reason || null
+      };
+
+      await api.patch(`/admin/contributions/${contributionId}`, payload);
+      
       handleClose();
       onSuccess();
     } catch (error: any) {
