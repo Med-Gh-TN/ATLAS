@@ -1,26 +1,28 @@
 import uuid
+import bcrypt
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
 from jose import JWTError, jwt
-from argon2 import PasswordHasher
-from argon2.exceptions import VerifyMismatchError
 
 from app.core.config import settings
 
-# US-01 / Zero-Trust Security: Using argon2-cffi directly to bypass legacy passlib bugs
-ph = PasswordHasher()
+# US-03 / Strict Specification Adherence: Using bcrypt (cost=12) directly to bypass legacy passlib bugs
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verifies a plaintext password against its hashed version."""
+    """Verifies a plaintext password against its bcrypt hashed version."""
     try:
-        return ph.verify(hashed_password, plain_password)
-    except VerifyMismatchError:
+        # bcrypt requires bytes for both the password and the hash
+        return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+    except (ValueError, TypeError):
         return False
 
 def get_password_hash(password: str) -> str:
-    """Generates a secure hash for a plaintext password using Argon2."""
-    return ph.hash(password)
+    """Generates a secure hash for a plaintext password using bcrypt with cost=12."""
+    # rounds=12 strictly enforces the US-03 backlog specification
+    salt = bcrypt.gensalt(rounds=12)
+    hashed_bytes = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed_bytes.decode('utf-8')
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """

@@ -1,5 +1,6 @@
 import logging
 import smtplib
+import re
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
@@ -45,38 +46,50 @@ def send_email(to_email: str, subject: str, html_content: str) -> bool:
 
     except Exception as e:
         logger.error(f"Email Service: SMTP error occurred during dispatch: {str(e)}")
-        # If Gmail blocks the connection during local dev, print the OTP to the console
+        # If Gmail blocks the connection during local dev, print the payload to the console
         _dev_mode_fallback(to_email, subject, html_content)
         return True # Allow registration to proceed so UI testing isn't blocked
 
 def _dev_mode_fallback(to_email: str, subject: str, html_content: str):
     """
-    SOTA Dev Experience: If email fails to send, parse the OTP and print it to the terminal.
+    SOTA Dev Experience: If email fails to send, parse the OTP or Token and print it to the terminal.
     """
-    import re
     # Extract the 6-digit code from the subject or body
-    match = re.search(r'\b\d{6}\b', subject)
-    code = match.group(0) if match else "[CODE HIDDEN]"
+    match_otp = re.search(r'\b\d{6}\b', subject)
+    # Extract token from the magic link
+    match_token = re.search(r'token=([A-Za-z0-9_-]+)', html_content)
     
     print("\n" + "="*60)
     print("🚨 DEV MODE FALLBACK: EMAIL INTERCEPTED 🚨")
     print("="*60)
     print(f"To: {to_email}")
     print(f"Subject: {subject}")
-    print(f"OTP CODE: >>> {code} <<< (Copy this into the React UI)")
+    
+    if match_token:
+        print(f"MAGIC LINK TOKEN: >>> {match_token.group(1)} <<<")
+        print(f"FULL URL: http://localhost:3000/activate/teacher?token={match_token.group(1)}")
+    elif match_otp:
+        print(f"OTP CODE: >>> {match_otp.group(0)} <<< (Copy this into the React UI)")
+    else:
+        print("CONTENT: [Code/Token Hidden - Check HTML Body]")
+        
     print("="*60 + "\n")
 
 def send_otp_email(to_email: str, otp_code: str) -> bool:
     """
     Constructs a stylized HTML template for the OTP verification code.
     Matches the 'Silicon Valley' aesthetic of the platform.
-    Includes explicit expiration warnings and a resend link per US-03.
+    Dynamically injects explicit expiration warnings and a resend link per US-03.
     """
     subject = f"{otp_code} is your ATLAS verification code"
     
     # Safely get frontend URL for the resend link, fallback to a relative path
     frontend_url = getattr(settings, "BACKEND_CORS_ORIGINS", ["http://localhost:3000"])[0]
     resend_link = f"{frontend_url}/auth/verify-otp"
+    
+    # Dynamically calculate display TTL to prevent drift between Config and Email Template
+    ttl_hours = settings.OTP_EXPIRE_MINUTES // 60
+    ttl_display = f"{ttl_hours} hours" if ttl_hours >= 1 else f"{settings.OTP_EXPIRE_MINUTES} minutes"
     
     # Stylized HTML Email Body with ATLAS Branding
     html = f"""
@@ -96,7 +109,7 @@ def send_otp_email(to_email: str, otp_code: str) -> bool:
                 </div>
                 
                 <p style="font-size: 14px; color: #4b5563; text-align: center; margin-bottom: 24px;">
-                    <strong>Security Notice:</strong> This code will expire in exactly <strong>24 hours</strong>.
+                    <strong>Security Notice:</strong> This code will expire in exactly <strong>{ttl_display}</strong>.
                 </p>
                 
                 <div style="text-align: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6;">
@@ -126,13 +139,17 @@ def send_otp_email(to_email: str, otp_code: str) -> bool:
 
 def send_teacher_invitation_email(to_email: str, otp_code: str, teacher_name: str, department_name: str) -> bool:
     """
-    Constructs a stylized HTML template for the Teacher Onboarding invitation.
-    Matches US-05 requirements: personalized with name, department, direct activation link, and OTP.
+    US-05 (Updated): Constructs a stylized HTML template for the Teacher Onboarding invitation.
+    Instead of an OTP, it now dispatches a secure Magic Link containing the invite token.
+    (Note: The token is passed via the 'otp_code' argument to maintain API compatibility with admin.py).
     """
     subject = "Invitation to join ATLAS - Teacher Onboarding"
     
+    invite_token = otp_code
     frontend_url = getattr(settings, "BACKEND_CORS_ORIGINS", ["http://localhost:3000"])[0]
-    activation_link = f"{frontend_url}/activate/teacher"
+    
+    # MAGIC LINK GENERATION
+    activation_link = f"{frontend_url}/activate/teacher?token={invite_token}"
     
     html = f"""
     <!DOCTYPE html>
@@ -145,21 +162,17 @@ def send_teacher_invitation_email(to_email: str, otp_code: str, teacher_name: st
                 
                 <p style="font-size: 16px; color: #374151;">Hello Professor <strong>{teacher_name}</strong>,</p>
                 <p style="font-size: 16px; color: #374151;">You have been invited to join the <strong>{department_name}</strong> department on the ATLAS Platform.</p>
-                <p style="font-size: 16px; color: #374151;">To activate your teacher account and set up your profile, please use your unique onboarding code below:</p>
+                <p style="font-size: 16px; color: #374151;">To activate your teacher account and set up your secure credentials, please click the secure link below:</p>
                 
-                <div style="background-color: #f3f4f6; padding: 24px; text-align: center; border-radius: 8px; margin: 32px 0; border: 1px dashed #d1d5db;">
-                    <span style="font-size: 42px; font-weight: 800; letter-spacing: 12px; color: #111827; display: block; margin-left: 12px;">{otp_code}</span>
-                </div>
-                
-                <p style="font-size: 14px; color: #4b5563; text-align: center; margin-bottom: 24px;">
-                    <strong>Security Notice:</strong> This code is strictly single-use and will expire in exactly <strong>48 hours</strong>.
-                </p>
-                
-                <div style="text-align: center; margin-top: 32px;">
-                    <a href="{activation_link}" style="background-color: #000000; color: #ffffff; padding: 12px 24px; text-decoration: none; font-weight: 600; border-radius: 6px; display: inline-block;">
-                        Activate Account
+                <div style="text-align: center; margin: 40px 0;">
+                    <a href="{activation_link}" style="background-color: #000000; color: #ffffff; padding: 14px 28px; text-decoration: none; font-weight: 600; border-radius: 6px; display: inline-block; font-size: 16px;">
+                        Activate My Account
                     </a>
                 </div>
+                
+                <p style="font-size: 14px; color: #4b5563; text-align: center; margin-bottom: 24px; padding: 16px; background-color: #fef2f2; border-left: 4px solid #ef4444; border-radius: 4px;">
+                    <strong>Security Notice:</strong> This link is strictly single-use and will expire in exactly <strong>48 hours</strong>.
+                </p>
 
                 <div style="margin-top: 40px; text-align: center; border-top: 1px solid #f3f4f6; padding-top: 24px;">
                     <p style="font-size: 12px; color: #9ca3af; margin: 0;">
@@ -235,6 +248,53 @@ def send_contribution_status_email(to_email: str, title: str, status: str, reaso
                 <div style="margin-top: 40px; border-top: 1px solid #f3f4f6; padding-top: 24px; text-align: center;">
                     <p style="font-size: 12px; color: #9ca3af; margin: 0;">
                         &copy; 2026 ATLAS Platform. Built for Sfax CS Students.
+                    </p>
+                </div>
+            </div>
+        </body>
+    </html>
+    """
+    
+    return send_email(to_email=to_email, subject=subject, html_content=html)
+
+def send_admin_new_contribution_email(to_email: str, title: str, uploader_name: str) -> bool:
+    """
+    US-11: Admin/Teacher Notification for New Student Contributions.
+    Alerts moderators that a new document has entered the PENDING queue.
+    """
+    subject = f"Action Required: New Contribution Pending Review - {title}"
+    
+    frontend_url = getattr(settings, "BACKEND_CORS_ORIGINS", ["http://localhost:3000"])[0]
+    moderation_link = f"{frontend_url}/admin/moderation"
+    
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #171717; line-height: 1.6; background-color: #f9fafb; padding: 20px; margin: 0;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 40px; border: 1px solid #e5e5e5; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h2 style="color: #000000; font-size: 24px; font-weight: 700; margin: 0; letter-spacing: -0.5px;">New Pending Contribution</h2>
+                </div>
+                
+                <p style="font-size: 16px; color: #374151;">Hello Moderator,</p>
+                <p style="font-size: 16px; color: #374151;">
+                    A new student contribution has been submitted and is waiting for your review.
+                </p>
+                
+                <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 24px 0; border: 1px solid #e2e8f0;">
+                    <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b;"><strong>Document Title:</strong> <span style="color: #0f172a;">{title}</span></p>
+                    <p style="margin: 0; font-size: 14px; color: #64748b;"><strong>Submitted By:</strong> <span style="color: #0f172a;">{uploader_name}</span></p>
+                </div>
+                
+                <div style="text-align: center; margin: 32px 0;">
+                    <a href="{moderation_link}" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; font-weight: 600; border-radius: 6px; display: inline-block; font-size: 16px;">
+                        Open Moderation Panel
+                    </a>
+                </div>
+
+                <div style="margin-top: 40px; border-top: 1px solid #f3f4f6; padding-top: 24px; text-align: center;">
+                    <p style="font-size: 12px; color: #9ca3af; margin: 0;">
+                        &copy; 2026 ATLAS Platform.
                     </p>
                 </div>
             </div>

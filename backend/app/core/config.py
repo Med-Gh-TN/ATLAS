@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "ATLAS API"
     ENVIRONMENT: str = "development"
+    
     # ==========================================
     # SECURITY
     # ==========================================
@@ -114,6 +115,12 @@ class Settings(BaseSettings):
         return "redis://localhost:6379/1"
 
     # ==========================================
+    # OCR & DOCUMENT PROCESSING (US-07)
+    # ==========================================
+    OCR_QUALITY_ALERT_THRESHOLD: float = 50.0
+    ADMIN_ALERT_EMAIL: EmailStr | None = None
+
+    # ==========================================
     # SMTP / EMAIL (Gmail Integration)
     # ==========================================
     SMTP_TLS: bool = True
@@ -128,8 +135,22 @@ class Settings(BaseSettings):
     # ==========================================
     # OTP CONFIGURATION
     # ==========================================
-    OTP_EXPIRE_MINUTES: int = 10
+    # Activation & General OTP Limits
+    OTP_EXPIRE_MINUTES: int = 1440
     OTP_LENGTH: int = 6
+    
+    # US-04: Strict limits for Password Recovery
+    PASSWORD_RESET_OTP_EXPIRE_MINUTES: int = 15
+    PASSWORD_RESET_MAX_ATTEMPTS: int = 3
+    
+    # US-05: Strict limits for Teacher Onboarding
+    TEACHER_OTP_EXPIRE_MINUTES: int = 2880
+
+    # ==========================================
+    # LLM & RAG PIPELINE (US-13)
+    # ==========================================
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    GROQ_API_KEY: str | None = None
 
     # Pydantic v2 standard configuration block
     model_config = SettingsConfigDict(

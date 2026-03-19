@@ -9,7 +9,8 @@ from app.db.session import get_session
 from app.models.user import User, UserCreate, UserRead, OTPPurpose
 from app.core import security
 from app.core.limits import limiter
-from app.services import auth_service
+# SOTA FIX: Import the dedicated otp_service
+from app.services import otp_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -60,7 +61,8 @@ async def register(
         session.add(user)
         await session.flush() 
         
-        otp_created = await auth_service.create_email_otp(
+        # SOTA FIX: Call create_email_otp from otp_service
+        otp_created = await otp_service.create_email_otp(
             session=session, 
             user=user, 
             purpose=OTPPurpose.ACCOUNT_ACTIVATION
@@ -101,7 +103,8 @@ async def verify_otp(
     Activates the account upon success.
     """
     try:
-        success = await auth_service.verify_email_otp(
+        # SOTA FIX: Call verify_email_otp from otp_service
+        success = await otp_service.verify_email_otp(
             session=session, 
             email=payload.email, 
             code=payload.code,
@@ -148,7 +151,8 @@ async def request_otp(
         user = result.scalars().first()
         
         if user:
-            otp_created = await auth_service.create_email_otp(
+            # SOTA FIX: Call create_email_otp from otp_service
+            otp_created = await otp_service.create_email_otp(
                 session=session, 
                 user=user,
                 purpose=OTPPurpose.ACCOUNT_ACTIVATION

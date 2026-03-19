@@ -3,41 +3,34 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
+from redis.asyncio import Redis
 
 from app.db.session import get_session
 from app.core.config import settings
 from app.core.limits import limiter
+# ARCHITECTURE FIX: Import the robust connection pool instead of relying on fragile app.state
+from app.core.redis import get_redis_client
 from app.services import auth_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-async def get_redis_client(request: Request) -> Any:
-    """
-    Retrieves the Redis client from the application state.
-    Requires Redis to be initialized in main.py.
-    """
-    if not hasattr(request.app.state, "redis"):
-        logger.error("Redis client not initialized in application state.")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
-            detail="Internal caching service unavailable."
-        )
-    return request.app.state.redis
 
 # US-24: Strict rate limiting applied to authentication (5 req/min/IP)
 @router.post("/login", dependencies=[Depends(limiter(5, 60))])
 async def login(
     response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(), 
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
+    redis_client: Redis = Depends(get_redis_client) # SOTA FIX: Injected for US-04 logic compliance
 ) -> Any:
     """
     Standard OAuth2 compatible token login.
     Generates an access token and securely sets a refresh token in an httpOnly cookie.
     Guarded by US-24 strict rate limiting.
     """
-    user = await auth_service.authenticate_user(session, form_data.username, form_data.password)
+    # ARCHITECTURE ALIGNMENT: Passed arguments strictly matching auth_service.authenticate_user signature:
+    # (session: AsyncSession, email: str, password: str, redis_client: Any)
+    user = await auth_service.authenticate_user(session, form_data.username, form_data.password, redis_client)
     
     if not user:
         # SIDE-EFFECT: Log failed attempts for potential Fail2Ban / SIEM ingestion
@@ -78,7 +71,7 @@ async def login(
 async def refresh_token(
     request: Request,
     response: Response,
-    redis_client: Any = Depends(get_redis_client)
+    redis_client: Redis = Depends(get_redis_client)
 ) -> Any:
     """
     Validates the refresh token from the httpOnly cookie, blacklists it, 
@@ -111,7 +104,7 @@ async def refresh_token(
 async def logout(
     request: Request,
     response: Response,
-    redis_client: Any = Depends(get_redis_client)
+    redis_client: Redis = Depends(get_redis_client)
 ) -> Any:
     """
     Logs the user out by blacklisting their refresh token and clearing the cookie.

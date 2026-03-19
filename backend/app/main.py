@@ -1,13 +1,17 @@
+import os
 import logging
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
+import meilisearch
+from meilisearch.errors import MeilisearchApiError
 
 from app.core.config import settings
 from app.core.logging_config import configure_logging
-from app.api.v1.endpoints import auth, upload, search, moderation, admin, rag, study, quiz
+from app.api.v1.endpoints import auth, upload, search, moderation, admin, rag, study, quiz, notifications
 from app.db.session import init_db
 
 logger = logging.getLogger(__name__)
@@ -38,13 +42,37 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 async def lifespan(app: FastAPI):
     """
     Asynchronous context manager for FastAPI lifecycle events.
-    Handles startup and shutdown of database and Redis connections cleanly.
+    Handles startup and shutdown of database, Redis connections, and Search indices cleanly.
     """
     # Initialize Core Services
     configure_logging()
     await init_db()
     
+    # ==========================================
+    # Bootstrapping Meilisearch (US-09 Architecture Hardening)
+    # ==========================================
+    try:
+        # Cross-reference .env and search.py variable naming conventions defensively
+        meili_url = os.getenv("MEILI_HOST", os.getenv("MEILI_URL", "http://localhost:7700"))
+        meili_key = os.getenv("MEILI_MASTER_KEY", "meili_master_key")
+        meili_client = meilisearch.Client(meili_url, meili_key)
+        
+        # This atomic action automatically creates the index if it does not exist
+        # AND configures the strict attributes required for faceted search.
+        task = meili_client.index("documents").update_filterable_attributes([
+            "level",
+            "academic_year",
+            "course_type",
+            "language",
+            "is_official"
+        ])
+        logger.info(f"Meilisearch index 'documents' bootstrapped with filterable attributes. Task: {task.task_uid}")
+    except Exception as e:
+        logger.error(f"CRITICAL: Failed to bootstrap Meilisearch: {e}")
+
+    # ==========================================
     # Initialize Redis Rate Limiter, Auth Blacklist, and Cache
+    # ==========================================
     try:
         from fastapi_limiter import FastAPILimiter
         import redis.asyncio as redis
@@ -63,14 +91,25 @@ async def lifespan(app: FastAPI):
             decode_responses=True
         )
         
-        # Initialize Rate Limiter
-        await FastAPILimiter.init(redis_client)
-        
-        # DEFENSIVE ARCHITECTURE: Attach Redis to app state.
+        # DEFENSIVE ARCHITECTURE: Attach Redis to app state IMMEDIATELY.
+        # This ensures auth endpoints have access to the client even if the rate limiter throws an error.
         app.state.redis = redis_client
         app.state.redis_cache = redis_cache
         
-        logger.info("FastAPILimiter and Global Redis clients initialized successfully.")
+        # Resilient Startup Logic for Redis
+        for attempt in range(1, 6):
+            try:
+                await redis_client.ping()
+                await FastAPILimiter.init(redis_client)
+                logger.info("FastAPILimiter and Global Redis clients initialized successfully.")
+                break
+            except Exception as e:
+                if attempt == 5:
+                    logger.error(f"CRITICAL: Redis/Rate Limiter failed to initialize after 5 attempts: {e}")
+                    break
+                logger.warning(f"Waiting for Redis container... (Attempt {attempt}/5)")
+                await asyncio.sleep(2)
+                
     except Exception as e:
         # DEFENSIVE ARCHITECTURE: Never swallow infrastructure exceptions silently.
         logger.error(f"CRITICAL: Failed to initialize Redis infrastructure: {e}")
@@ -118,10 +157,11 @@ app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["aut
 app.include_router(upload.router, prefix=f"{settings.API_V1_STR}/contributions", tags=["contributions"])
 app.include_router(search.router, prefix=f"{settings.API_V1_STR}", tags=["search"])
 app.include_router(moderation.router, prefix=f"{settings.API_V1_STR}", tags=["moderation"])
-app.include_router(admin.router, prefix=f"{settings.API_V1_STR}", tags=["admin"])
+app.include_router(admin.router, prefix=f"{settings.API_V1_STR}/admin", tags=["admin"])
 app.include_router(rag.router, prefix=f"{settings.API_V1_STR}/rag", tags=["rag"])
 app.include_router(study.router, prefix=f"{settings.API_V1_STR}/study", tags=["study"])
 app.include_router(quiz.router, prefix=f"{settings.API_V1_STR}/quiz", tags=["quiz"])
+app.include_router(notifications.router, prefix=f"{settings.API_V1_STR}/notifications", tags=["notifications"])
 
 @app.get("/health", tags=["health"])
 def health_check():

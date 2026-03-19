@@ -1,5 +1,7 @@
+import os
 import logging
 from typing import Optional
+import meilisearch
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -16,10 +18,12 @@ from app.models.all_models import (
     ContributionRead,
     DocumentVersion,
     XPTransaction, 
-    XPTransactionType
+    XPTransactionType,
+    Notification
 )
 from app.core.rbac import require_roles
 from app.services.email_service import send_contribution_status_email
+from app.api.v1.endpoints.notifications import manager
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +33,47 @@ class ReviewContributionRequest(BaseModel):
     """Payload for US-11 Admin Moderation actions."""
     status: ContributionStatus
     rejection_reason: Optional[str] = None
+
+
+# --- US-09: MEILISEARCH SIDE-EFFECTS ---
+def _sync_to_meilisearch(doc_payload: dict):
+    """IO-bound background task to index approved documents with FR/AR typo tolerance."""
+    try:
+        client = meilisearch.Client(
+            os.getenv("MEILI_URL", "http://localhost:7700"), 
+            os.getenv("MEILI_MASTER_KEY", "meili_master_key")
+        )
+        index = client.index("documents")
+        
+        # Enforce Typo Tolerance for Arabic/French (US-09)
+        index.update_settings({
+            "typoTolerance": {
+                "enabled": True,
+                "minWordSizeForTypos": {"oneTypo": 4, "twoTypos": 8}
+            }
+        })
+        
+        index.add_documents([doc_payload])
+        logger.info(f"[SEARCH AUDIT] Successfully indexed document {doc_payload['id']} to MeiliSearch")
+    except Exception as e:
+        logger.error(f"[SEARCH AUDIT] MeiliSearch indexing failed for {doc_payload.get('id')}: {e}")
+
+def _remove_from_meilisearch(doc_id: str):
+    """IO-bound background task to purge rejected/hidden documents."""
+    try:
+        client = meilisearch.Client(
+            os.getenv("MEILI_URL", "http://localhost:7700"), 
+            os.getenv("MEILI_MASTER_KEY", "meili_master_key")
+        )
+        client.index("documents").delete_document(doc_id)
+        logger.info(f"[SEARCH AUDIT] Successfully purged document {doc_id} from MeiliSearch")
+    except Exception as e:
+        logger.error(f"[SEARCH AUDIT] MeiliSearch purge failed for {doc_id}: {e}")
+
+async def _dispatch_ws_notification(user_id, payload: dict):
+    """US-11: Background task to push real-time notification to the connected user."""
+    await manager.send_personal_message(payload, user_id)
+# ---------------------------------------
 
 
 @router.patch("/admin/contributions/{contribution_id}", response_model=ContributionRead)
@@ -42,7 +87,7 @@ async def review_contribution(
     """
     US-11: Centralized state machine for contribution approvals/rejections.
     Handles atomic XP crediting, mandatory rejection reasons, soft-deletions,
-    and asynchronous side-effects (Email/In-App notifications).
+    and asynchronous side-effects (Search Indexing, Email/In-App notifications).
     """
     # 1. Fetch the Contribution
     result = await session.execute(select(Contribution).where(Contribution.id == contribution_id))
@@ -95,17 +140,48 @@ async def review_contribution(
             .values(is_deleted=False)
         )
 
+        # US-09: Prepare MeiliSearch Payload for Background Sync
+        dv_query = await session.execute(
+            select(DocumentVersion).where(DocumentVersion.contribution_id == c.id)
+        )
+        dv = dv_query.scalars().first()
+        
+        if dv:
+            # Extract fields defensively to prevent index crashes on dynamic models
+            doc_payload = {
+                "id": str(dv.id),
+                "document_version_id": str(dv.id),
+                "title": getattr(c, "title", "Untitled Document"),
+                "teacher_name": getattr(c, "teacher_name", "Unknown"),
+                "is_official": getattr(c, "is_official", False),
+                "quality_score": getattr(c, "quality_score", 0.0),
+                "tags": getattr(c, "tags", []),
+                "filiere": getattr(c, "filiere", None),
+                "level": getattr(c, "niveau", None),
+                "academic_year": getattr(c, "annee", None),
+                "course_type": getattr(c, "type_cours", None),
+                "language": getattr(c, "langue", "FR"),
+                "ocr_text": getattr(dv, "ocr_text", "")
+            }
+            background_tasks.add_task(_sync_to_meilisearch, doc_payload)
+
     # 4. Handle REJECTED State & Soft-Deletion
     elif payload.status == ContributionStatus.REJECTED:
         c.status = ContributionStatus.REJECTED
         session.add(c)
         
-        # Soft-delete associated DocumentVersions so they disappear from search
+        # Soft-delete associated DocumentVersions so they disappear from semantic search
         await session.execute(
             update(DocumentVersion)
             .where(DocumentVersion.contribution_id == c.id)
             .values(is_deleted=True)
         )
+        
+        # US-09: Purge from Lexical Search Index
+        dv_query = await session.execute(select(DocumentVersion.id).where(DocumentVersion.contribution_id == c.id))
+        dv_id = dv_query.scalars().first()
+        if dv_id:
+            background_tasks.add_task(_remove_from_meilisearch, str(dv_id))
 
     # 5. Handle REVISION_REQUESTED State
     elif payload.status == ContributionStatus.REVISION_REQUESTED:
@@ -118,34 +194,60 @@ async def review_contribution(
             .where(DocumentVersion.contribution_id == c.id)
             .values(is_deleted=True)
         )
+        
+        # US-09: Purge from Lexical Search Index
+        dv_query = await session.execute(select(DocumentVersion.id).where(DocumentVersion.contribution_id == c.id))
+        dv_id = dv_query.scalars().first()
+        if dv_id:
+            background_tasks.add_task(_remove_from_meilisearch, str(dv_id))
 
     # 6. Atomic Commit with Race Condition Protection
     try:
+        # --- US-11: State Persistence for In-App Notifications ---
+        status_text = "Approved" if payload.status == ContributionStatus.APPROVED else "Revision Requested" if payload.status == ContributionStatus.REVISION_REQUESTED else "Rejected"
+        notification = Notification(
+            user_id=c.uploader_id,
+            title=f"Contribution {status_text}",
+            message=f"Your document '{getattr(c, 'title', 'Untitled')}' has been {status_text.lower()}.",
+            contribution_id=c.id
+        )
+        session.add(notification)
+
         await session.commit()
         await session.refresh(c)
+        await session.refresh(notification)
         
         # 7. Side-Effects Dispatch (US-11 Notifications)
-        # Fetch the uploader's email to target the notification
         uploader_query = await session.execute(select(User).where(User.id == c.uploader_id))
         uploader = uploader_query.scalars().first()
         
         if uploader and getattr(uploader, "email", None):
-            # Extract the raw string value from the Enum for the email template logic
             status_str = payload.status.value if hasattr(payload.status, 'value') else str(payload.status)
             
-            # Queue the SMTP email dispatch on the background thread
+            # Email Push
             background_tasks.add_task(
                 send_contribution_status_email,
                 to_email=uploader.email,
-                title=c.title,
+                title=getattr(c, "title", "Your contribution"),
                 status=status_str,
                 reason=payload.rejection_reason
             )
             logger.info(f"Queued background status notification email to {uploader.email}")
+
+            # WebSocket In-App Push
+            ws_payload = {
+                "type": "NEW_NOTIFICATION",
+                "notification": {
+                    "id": str(notification.id),
+                    "title": notification.title,
+                    "message": notification.message,
+                    "is_read": False,
+                    "contribution_id": str(c.id),
+                    "created_at": notification.created_at.isoformat()
+                }
+            }
+            background_tasks.add_task(_dispatch_ws_notification, c.uploader_id, ws_payload)
             
-            # Architecture Stub: In-App Notification (WebSocket/DB) would be injected here
-            # e.g., background_tasks.add_task(create_in_app_notification, uploader.id, c.id, status_str)
-        
         logger.info(f"Contribution {c.id} transitioned to {payload.status} by {current_user.email}")
         return c
         
@@ -185,7 +287,6 @@ async def reject_legacy(
     session: AsyncSession = Depends(get_session)
 ):
     """Legacy endpoint. Use PATCH /admin/contributions/{id} instead."""
-    # Force a generic reason since the legacy endpoint didn't require one
     payload = ReviewContributionRequest(
         status=ContributionStatus.REJECTED, 
         rejection_reason="Rejected via legacy admin panel without specific feedback."

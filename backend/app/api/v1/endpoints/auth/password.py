@@ -8,7 +8,9 @@ from pydantic import BaseModel, EmailStr, Field
 from app.db.session import get_session
 from app.models.user import User, OTPPurpose
 from app.core.limits import limiter
-from app.services import auth_service
+from app.core.redis import get_redis_client 
+# SOTA FIX: Import both services to respect domain boundaries
+from app.services import auth_service, otp_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -41,10 +43,10 @@ async def forgot_password(
         user = result.scalars().first()
         
         if user:
-            otp_created = await auth_service.create_email_otp(
+            # SOTA FIX: Rerouted to otp_service
+            otp_created = await otp_service.create_email_otp(
                 session=session, 
                 user=user,
-                ttl_minutes=15,
                 purpose=OTPPurpose.PASSWORD_RESET
             )
             if otp_created:
@@ -73,14 +75,16 @@ async def forgot_password(
 @router.post("/reset-password", dependencies=[Depends(limiter(5, 3600))])
 async def reset_password(
     payload: ResetPasswordRequest, 
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
+    redis_client: Any = Depends(get_redis_client) 
 ) -> Any:
     """
     Verifies the PASSWORD_RESET OTP and updates the user's password.
     Rate limited to prevent OTP brute-force attacks.
     """
     try:
-        success = await auth_service.verify_email_otp(
+        # SOTA FIX: Rerouted to otp_service for verification
+        success = await otp_service.verify_email_otp(
             session=session, 
             email=payload.email, 
             code=payload.code,
@@ -96,8 +100,10 @@ async def reset_password(
                 detail="Invalid or expired reset code."
             )
             
+        # Passed the redis_client to the core logic to enable global session revocation
         pw_reset_success = await auth_service.reset_user_password(
             session=session, 
+            redis_client=redis_client,
             email=payload.email, 
             new_password=payload.new_password
         )

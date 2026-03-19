@@ -42,18 +42,29 @@ def _embed_query_sync(q: str) -> List[float]:
     except Exception as e:
         raise RuntimeError(f"Embedding failed: {str(e)}")
 
-def _meili_search_sync(query: str, filters: List[str], limit: int) -> Dict[str, Any]:
-    """IO-bound MeiliSearch call isolated for threading."""
+def _meili_search_sync(query: str, filters: List[str], limit: int, specific_ids: Optional[List[str]] = None) -> Dict[str, Any]:
+    """
+    IO-bound MeiliSearch call isolated for threading.
+    US-09: Supports faceted filtering and explicit ID fetching for RRF candidate metadata resolution.
+    """
     index = meili_client.index("documents")
     search_params = {
         "limit": limit,
         "attributesToHighlight": ["title", "ocr_text", "tags"],
         "highlightPreTag": "<mark>",
         "highlightPostTag": "</mark>",
-        "attributesToRetrieve": ["id", "document_version_id", "title", "teacher_name", "is_official", "quality_score"]
+        "attributesToRetrieve": ["id", "document_version_id", "title", "teacher_name", "is_official", "quality_score", "tags", "filiere"]
     }
-    if filters:
-        search_params["filter"] = filters
+    
+    final_filters = list(filters) if filters else []
+    
+    # Enable fetching specific metadata for semantic candidates
+    if specific_ids:
+        ids_str = ", ".join([f"'{x}'" for x in specific_ids])
+        final_filters.append(f"document_version_id IN [{ids_str}]")
+        
+    if final_filters:
+        search_params["filter"] = final_filters
         
     return index.search(query, search_params)
 
@@ -64,6 +75,8 @@ class SearchResultItem(BaseModel):
     is_official: bool
     quality_score: Optional[float]
     snippet: str
+    tags: Optional[List[str]] = []
+    filiere: Optional[str] = None
     rrf_score: float
 
 async def search_user_identifier(request: Request) -> str:
@@ -94,12 +107,12 @@ async def search_hybrid(
     session: AsyncSession = Depends(get_session)
 ):
     """
-    US-09: Hybrid Search combining MeiliSearch (Lexical/Typo) + pgvector (Semantic)
-    US-25: Redis Caching Pattern applied (5m TTL).
-    Uses Reciprocal Rank Fusion (RRF) and strictly adheres to <200ms latency constraints.
+    US-09: True Hybrid Search combining MeiliSearch (Lexical/Typo) + pgvector (Semantic)
+    - Replaces and absorbs the legacy /search/text route.
+    - Utilizes Reciprocal Rank Fusion (RRF) on independently executed searches.
+    - Applies strict backend-level facet filtering.
     """
     # 0. DEFENSIVE ARCHITECTURE: Cache-Aside Implementation
-    # Create deterministic, ordered cache key from all query parameters
     raw_key = f"{q}|{filiere}|{niveau}|{annee}|{type_cours}|{langue}|{is_official}|{top_k}"
     hashed_key = hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
     cache_key = f"cache:search:v1:{hashed_key}"
@@ -110,15 +123,15 @@ async def search_hybrid(
         try:
             cached_payload = await redis_cache.get(cache_key)
             if cached_payload:
-                # Cache Hit
                 parsed_payload = json.loads(cached_payload)
                 return [SearchResultItem(**item) for item in parsed_payload]
         except Exception as e:
-            # Swallow infrastructure exceptions to prevent search downtime
             logger.warning(f"Redis cache GET failure on search: {e}")
 
     # 1. Build Faceted Filters for MeiliSearch
     filters = []
+    if filiere:
+        filters.append(f"filiere = '{filiere}'")
     if niveau:
         filters.append(f"level = '{niveau}'")
     if annee:
@@ -129,97 +142,102 @@ async def search_hybrid(
         filters.append(f"language = '{langue}'")
     if is_official is not None:
         filters.append(f"is_official = {str(is_official).lower()}")
-        
-    # 2. Execute MeiliSearch Query (Asynchronously safely)
-    try:
-        meili_results = await asyncio.to_thread(_meili_search_sync, q, filters, top_k * 3)
-    except Exception as e:
-        # Fallback empty list if MeiliSearch is unreachable during development
-        logger.error(f"MeiliSearch execution failed: {e}")
-        meili_results = {"hits": []}
 
-    if not meili_results.get("hits"):
-        return []
-
-    # Map Meili ranks and extract highlights
-    meili_rank = {}
-    meili_data = {}
-    doc_version_ids = []
-    
-    for i, hit in enumerate(meili_results["hits"]):
-        dv_id = hit["document_version_id"]
-        meili_rank[dv_id] = i + 1
-        doc_version_ids.append(dv_id)
-        
-        # Extract the best snippet from highlighted results
-        formatted = hit.get("_formatted", {})
-        snippet = formatted.get("ocr_text", "")
-        if len(snippet) > 200:
-            snippet = snippet[:200] + "..."
-            
-        meili_data[dv_id] = {
-            "title": hit.get("title", ""),
-            "teacher_name": hit.get("teacher_name", ""),
-            "is_official": hit.get("is_official", False),
-            "quality_score": hit.get("quality_score", 0.0),
-            "snippet": snippet
-        }
-
-    # 3. Execute Semantic Search (pgvector) ONLY on the pre-filtered IDs
-    sem_rank = {}
+    # 2. Execute INDEPENDENT Semantic Search (pgvector)
+    sem_ranks = {}
     if q.strip():
         try:
             query_vector = await asyncio.to_thread(_embed_query_sync, q)
-            
-            # Defensive Architecture: Binding dynamic IN clauses securely in SQLAlchemy
+            # Fetch broader candidate pool (top_k * 5) to account for facet drop-offs during metadata sync
             sem_sql = sa.text("""
                 SELECT e.document_version_id, MIN(e.vector <=> :q_vec) as dist
                 FROM documentembedding e
-                WHERE e.document_version_id = ANY(:dv_ids)
                 GROUP BY e.document_version_id
                 ORDER BY dist ASC
+                LIMIT :limit
             """)
             
             sem_res = await session.execute(
                 sem_sql.bindparams(
                     sa.bindparam("q_vec", value=query_vector), 
-                    sa.bindparam("dv_ids", value=doc_version_ids)
+                    sa.bindparam("limit", value=top_k * 5)
                 )
             )
             
             for i, row in enumerate(sem_res.mappings().all()):
-                sem_rank[str(row["document_version_id"])] = i + 1
+                sem_ranks[str(row["document_version_id"])] = i + 1
                 
         except Exception as e:
-            # If embedding fails, gracefully degrade to pure lexical search
-            logger.warning(f"Semantic search degraded: {e}")
+            logger.warning(f"Semantic search degraded. Falling back to Lexical-only: {e}")
 
-    # 4. Apply Reciprocal Rank Fusion (RRF)
+    # 3. Execute INDEPENDENT Lexical Search (MeiliSearch)
+    meili_ranks = {}
+    try:
+        lex_results = await asyncio.to_thread(_meili_search_sync, q, filters, top_k * 3)
+        for i, hit in enumerate(lex_results.get("hits", [])):
+            meili_ranks[hit["document_version_id"]] = i + 1
+    except Exception as e:
+        logger.error(f"MeiliSearch execution failed: {e}")
+
+    # 4. Combine Candidates and Resolve Metadata via MeiliSearch
+    # This acts as our facet enforcer for semantic results and retrieves snippets.
+    all_candidate_ids = list(set(list(meili_ranks.keys()) + list(sem_ranks.keys())))
+    candidate_data = {}
+    
+    if all_candidate_ids:
+        try:
+            # Query MeiliSearch with the specific candidate IDs AND the strict facet filters
+            meta_results = await asyncio.to_thread(_meili_search_sync, q, filters, len(all_candidate_ids), all_candidate_ids)
+            
+            for hit in meta_results.get("hits", []):
+                dv_id = hit["document_version_id"]
+                
+                # Highlight Extraction
+                formatted = hit.get("_formatted", {})
+                snippet = formatted.get("ocr_text", "")
+                if len(snippet) > 200:
+                    snippet = snippet[:200] + "..."
+                    
+                candidate_data[dv_id] = {
+                    "title": hit.get("title", ""),
+                    "teacher_name": hit.get("teacher_name", ""),
+                    "is_official": hit.get("is_official", False),
+                    "quality_score": hit.get("quality_score", 0.0),
+                    "tags": hit.get("tags", []),
+                    "filiere": hit.get("filiere", ""),
+                    "snippet": snippet
+                }
+        except Exception as e:
+            logger.error(f"MeiliSearch candidate metadata fetch failed: {e}")
+
+    # 5. Calculate True Reciprocal Rank Fusion (RRF)
     k_rrf = 60
     fused_results = []
     
-    for dv_id in doc_version_ids:
+    # Only process documents that survived the facet filtering in Step 4
+    for dv_id, data in candidate_data.items():
         score = 0.0
-        if dv_id in meili_rank:
-            score += 1.0 / (k_rrf + meili_rank[dv_id])
-        if dv_id in sem_rank:
-            score += 1.0 / (k_rrf + sem_rank[dv_id])
+        if dv_id in meili_ranks:
+            score += 1.0 / (k_rrf + meili_ranks[dv_id])
+        if dv_id in sem_ranks:
+            score += 1.0 / (k_rrf + sem_ranks[dv_id])
             
-        data = meili_data[dv_id]
         fused_results.append(
             SearchResultItem(
                 document_version_id=dv_id,
                 title=data["title"],
                 teacher_name=data["teacher_name"],
                 is_official=data["is_official"],
-                quality_score=data.get("quality_score") or 0.0,
+                quality_score=data["quality_score"],
                 snippet=data["snippet"],
+                tags=data.get("tags") or [],
+                filiere=data.get("filiere"),
                 rrf_score=score
             )
         )
 
-    # 5. Apply Strict Business Logic Sorting
-    # US-09 Priority: 1. Official Teacher (True > False), 2. RRF Score, 3. Quality Score
+    # 6. Apply Strict Business Logic Sorting
+    # Priority: 1. Official Teacher (True > False), 2. RRF Score, 3. Quality Score
     fused_results.sort(key=lambda x: (
         x.is_official, 
         x.rrf_score, 
@@ -228,10 +246,9 @@ async def search_hybrid(
 
     final_results = fused_results[:top_k]
 
-    # 6. DEFENSIVE ARCHITECTURE: Write back to Cache
+    # 7. Write to Cache
     if redis_cache:
         try:
-            # Serialize the Pydantic models to dictionaries
             cache_payload = [item.model_dump() for item in final_results]
             await redis_cache.setex(
                 name=cache_key,

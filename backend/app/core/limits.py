@@ -1,6 +1,5 @@
 import logging
 import uuid
-import inspect
 from typing import Callable, Any
 from fastapi import HTTPException, status, Request
 
@@ -27,14 +26,9 @@ try:
         Critical for US-03: Max 3 OTP requests per hour per IP to prevent spam and financial drain.
         """
         try:
-            # FIX: Dynamically inspect signature to prevent initialization crash spam
-            sig = inspect.signature(_RL.__init__)
-            if 'requests' in sig.parameters:
-                # Legacy fastapi-limiter signature fallback
-                return _RL(requests=times, seconds=seconds)
-            else:
-                # Modern fastapi-limiter signature
-                return _RL(times=times, seconds=seconds)
+            # DEFENSIVE ARCHITECTURE: fastapi-limiter pinned to 0.1.5 guarantees this exact signature.
+            # Removed brittle inspect.signature() reflection which caused initialization crashes on drifted environments.
+            return _RL(times=times, seconds=seconds)
         except Exception as e:
             logger.critical(f"Security Warning: RateLimiter initialization failed ({str(e)}). Limits are NOT enforced.")
             return _noop_limiter()
@@ -108,7 +102,7 @@ class RAGRateLimits:
             count = await redis_client.incr(key)
             if count == 1:
                 await redis_client.expire(key, RAGRateLimits.SESSION_TTL_SECONDS)
-                
+            
             if count > RAGRateLimits.MAX_MESSAGES_PER_SESSION:
                 logger.warning(f"RAG Limit Exceeded: Session {session_id} exceeded {RAGRateLimits.MAX_MESSAGES_PER_SESSION} messages.")
                 raise HTTPException(

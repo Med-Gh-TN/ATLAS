@@ -2,6 +2,8 @@ import io
 import uuid
 import logging
 import re
+import secrets
+from datetime import datetime, timedelta
 
 import pandas as pd
 from fastapi import APIRouter, UploadFile, Depends, HTTPException, status
@@ -15,7 +17,8 @@ from app.db.session import get_session
 from app.core.rbac import require_roles
 from app.core.security import get_password_hash
 from app.models.user import User, UserRole, Establishment, Department, TeacherProfile
-from app.services.auth_service import create_teacher_onboarding_otp
+from app.services.email_service import send_teacher_invitation_email
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -44,9 +47,9 @@ async def import_teachers(
     session: AsyncSession = Depends(get_session)
 ):
     """
-    US-05: Batch imports teachers via CSV.
+    US-05 (Updated): Batch imports teachers via CSV.
     Validates institutional domains, prevents duplicates, sets isActive=False, 
-    and triggers the 48h single-use OTP onboarding email.
+    generates a secure single-use token, and triggers the onboarding email with a magic link.
     """
     if not file.filename.lower().endswith('.csv'):
         raise HTTPException(
@@ -81,8 +84,8 @@ async def import_teachers(
     # --- BATCH QUERY OPTIMIZATION (Prevent N+1) ---
     emails = df['email'].dropna().tolist()
     
-    # Extract domains: prof@univ-paris.fr -> univ-paris.fr
-    domains = [e.split('@')[-1] for e in emails if '@' in str(e)]
+    # Extract domains: prof@univ-paris.fr -> univ-paris.fr (Strictly lowercase for matching)
+    domains = [str(e).split('@')[-1].lower() for e in emails if '@' in str(e)]
     department_names = df['department_name'].dropna().unique().tolist()
 
     try:
@@ -92,7 +95,7 @@ async def import_teachers(
 
         # 2. Fetch Allowed Establishments by extracted domains
         est_res = await session.execute(select(Establishment).where(Establishment.domain.in_(domains)))
-        establishments_by_domain = {e.domain: e for e in est_res.scalars().all()}
+        establishments_by_domain = {e.domain.lower(): e for e in est_res.scalars().all()}
 
         # 3. Fetch Departments matching the names found in the CSV
         dept_res = await session.execute(select(Department).where(Department.name.in_(department_names)))
@@ -119,25 +122,31 @@ async def import_teachers(
         match = email_regex.match(email)
         if not match:
             report.errors.append(ImportErrorDetail(row=row_num, email=email, reason="Malformed email format"))
+            logger.warning(f"[AUDIT] Admin Import Rejection: Malformed email '{email}' at row {row_num}.")
             continue
             
-        domain = match.group(1)
+        domain = match.group(1).lower()
 
         # 2. Duplicate Detection
         if email in existing_emails:
             report.duplicates.append(ImportDuplicateDetail(row=row_num, email=email))
+            logger.info(f"[AUDIT] Admin Import Rejection: Duplicate email '{email}' detected at row {row_num}.")
             continue
 
         # 3. Institutional Domain Validation (Security)
         est = establishments_by_domain.get(domain)
         if not est:
-            report.errors.append(ImportErrorDetail(row=row_num, email=email, reason=f"Unauthorized domain: '{domain}' is not registered as an Establishment"))
+            reason = f"Unauthorized domain: '{domain}' is not registered as an Establishment"
+            report.errors.append(ImportErrorDetail(row=row_num, email=email, reason=reason))
+            logger.warning(f"[AUDIT] Admin Import Rejection: Security Domain Whitelist Bypass Attempt. Email '{email}' rejected. Domain '{domain}' unknown.")
             continue
 
         # 4. Department Validation
         dept = departments_map.get((dept_name, str(est.id)))
         if not dept:
-            report.errors.append(ImportErrorDetail(row=row_num, email=email, reason=f"Department '{dept_name}' not found within establishment '{est.name}'"))
+            reason = f"Department '{dept_name}' not found within establishment '{est.name}'"
+            report.errors.append(ImportErrorDetail(row=row_num, email=email, reason=reason))
+            logger.warning(f"[AUDIT] Admin Import Rejection: Invalid Department '{dept_name}' for Establishment '{est.name}' at row {row_num}.")
             continue
 
         valid_users_to_process.append({
@@ -147,7 +156,7 @@ async def import_teachers(
             "establishment": est
         })
 
-    # --- BATCH INSERTION & OTP DISPATCH ---
+    # --- BATCH INSERTION & TOKEN DISPATCH ---
     if not valid_users_to_process:
         return report # Return early if nothing to process
 
@@ -162,7 +171,7 @@ async def import_teachers(
                 full_name=data["full_name"],
                 hashed_password=get_password_hash(temp_password),
                 role=UserRole.TEACHER,
-                is_active=False,  # US-05 Strict: Accounts must be activated via OTP
+                is_active=False,  # US-05 Strict: Accounts must be activated via Token -> OTP
                 is_verified=False
             )
             session.add(new_user)
@@ -171,27 +180,35 @@ async def import_teachers(
         # Flush to generate UUIDs for the new users
         await session.flush()
         
-        # Create profiles and dispatch OTPs
+        # Create profiles and dispatch Tokens
         for new_user, dept, est in staged_users:
+            
+            # CORE LOGIC CHANGE: Generate secure token instead of OTP
+            secure_token = secrets.token_urlsafe(32)
+            expiration_time = datetime.utcnow() + timedelta(hours=48)
+            
             profile = TeacherProfile(
                 user_id=new_user.id,
-                department_id=dept.id
+                department_id=dept.id,
+                invite_token=secure_token,
+                invite_expires_at=expiration_time
             )
             session.add(profile)
             
-            # This handles the 48h TTL and single-use logic per US-05
-            otp_dispatched = await create_teacher_onboarding_otp(
-                session=session,
-                user=new_user,
+            # SOTA SIDE-EFFECT: Dispatch the email containing the token
+            # Note: We temporarily pass the token as the 'otp_code' argument to the email service 
+            # until we refactor the email service in the next step to handle the magic link properly.
+            email_dispatched = send_teacher_invitation_email(
+                to_email=new_user.email,
+                otp_code=secure_token, # TEMPORARY: Passing token through old parameter
                 teacher_name=new_user.full_name,
                 department_name=dept.name
             )
             
-            if otp_dispatched:
+            if email_dispatched:
                 report.success_count += 1
             else:
-                logger.error(f"Failed to generate OTP for imported user {new_user.email}")
-                # We do not fail the whole batch if one email fails, but we don't count it as a full success.
+                logger.error(f"[AUDIT] Critical Failure: Failed to dispatch Invitation Email for imported user {new_user.email}")
                 
         # Commit the transaction block atomically
         await session.commit()
@@ -199,7 +216,7 @@ async def import_teachers(
         
     except Exception as e:
         await session.rollback()
-        logger.error(f"Transaction rollback during batch teacher import: {str(e)}")
+        logger.error(f"[AUDIT] Transaction rollback during batch teacher import: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail="A critical database error occurred. Transaction rolled back."

@@ -92,6 +92,10 @@ class TeacherProfile(SQLModel, table=True):
     specialization: Optional[str] = Field(default=None, description="Teacher's primary field of expertise")
     modules: Optional[str] = Field(default=None, description="Comma-separated or JSON string of taught modules")
     
+    # NEW SECURE ONBOARDING FIELDS: Token verification gate
+    invite_token: Optional[str] = Field(default=None, unique=True, index=True, description="Cryptographically secure token for onboarding gate")
+    invite_expires_at: Optional[datetime] = Field(default=None, description="Expiration timestamp for the single-use invite token")
+    
     user: Optional["User"] = Relationship(back_populates="teacher_profile")
     department: Optional[Department] = Relationship(back_populates="teacher_profiles")
 

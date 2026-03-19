@@ -53,8 +53,9 @@ async def get_or_create_rag_collection(session: AsyncSession, document_version_i
     Lazily provisions a ChromaDB collection for a specific document version.
     Isolates RAG context per document to prevent cross-contamination.
     """
-    # Sanitize UUID for ChromaDB collection naming rules
-    collection_name = f"doc_{str(document_version_id).replace('-', '')}"
+    # STRICT BOUNDARY: Exact 1:1 mapping with Document Version UUID. 
+    # Hyphens are preserved to maintain standard UUID format compliance across microservices.
+    collection_name = f"doc_{document_version_id}"
     
     try:
         # Fast Path: If it exists, return it immediately
@@ -104,7 +105,7 @@ def retrieve_rag_context(collection, query: str, document_version_id: str) -> Tu
 
     query_vector = embedder.encode([query], normalize_embeddings=True).tolist()
     
-    # HNSW ANN search -> rank top-5 chunks, strictly filtered by doc_version_id
+    # HNSW ANN search -> rank top-5 chunks, strictly filtered by doc_version_id (Defense-in-depth)
     results = collection.query(
         query_embeddings=query_vector,
         n_results=5,

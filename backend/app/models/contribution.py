@@ -53,8 +53,14 @@ class Contribution(SQLModel, table=True):
     description: Optional[str] = None
     status: ContributionStatus = Field(default=ContributionStatus.PENDING)
     
+    # ARCHITECTURAL FIX: Temporal field required for FIFO/LIFO Queue sorting
+    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    
     # US-11 Requirement: Mandatory audit trail for rejections/revisions
     rejection_reason: Optional[str] = Field(default=None, description="Required when status is REJECTED or REVISION_REQUESTED")
+    
+    # US-07 Requirement: Flag degraded scans for admin review
+    quality_flag: bool = Field(default=False, index=True, description="Auto-flagged true if document scan quality is below OCR_QUALITY_ALERT_THRESHOLD")
     
     uploader_id: uuid.UUID = Field(foreign_key="user.id", index=True)
     uploader: Optional["User"] = Relationship(back_populates="contributions")
@@ -77,3 +83,5 @@ class ContributionRead(ContributionCreate):
     status: ContributionStatus
     uploader_id: uuid.UUID
     rejection_reason: Optional[str] = None
+    created_at: datetime
+    quality_flag: bool
