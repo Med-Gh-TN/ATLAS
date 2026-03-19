@@ -4,15 +4,42 @@ import io
 import json
 import time
 import pytest
+from fastapi import Request, Response
 from fastapi.testclient import TestClient
 from sqlmodel import Session, create_engine, select
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
 from app.main import app
 from app.core.config import settings
 from app.models.all_models import Contribution, DocumentVersion, ContributionStatus, DocumentPipelineStatus, User
 from app.models.rag import RAGSession, Message
 from app.services.embedding_tasks import embed_document
+from app.db.session import get_session
+
+# --- DEFENSIVE ARCHITECTURE: BYPASS REDIS RATE LIMITER FOR ISOLATED TESTS ---
+# FastAPI's inspect.signature engine crashes on raw AsyncMocks.
+# We must inject a concrete dummy function with the exact expected signature.
+import fastapi_limiter.depends
+async def dummy_limiter(request: Request, response: Response):
+    pass
+fastapi_limiter.depends.RateLimiter.__call__ = dummy_limiter
+# ----------------------------------------------------------------------------
+
+# --- DEFENSIVE ARCHITECTURE: ASYNCPG CONNECTION ISOLATION ---
+# TestClient creates a new event loop per request, which clashes with global asyncpg pools.
+# We enforce a NullPool to guarantee connection isolation and prevent 
+# "InterfaceError: cannot perform operation: another operation is in progress"
+test_async_engine = create_async_engine(settings.SQLALCHEMY_DATABASE_URI, poolclass=NullPool)
+TestAsyncSessionLocal = sessionmaker(test_async_engine, class_=AsyncSession, expire_on_commit=False)
+
+async def override_get_session():
+    async with TestAsyncSessionLocal() as session:
+        yield session
+
+app.dependency_overrides[get_session] = override_get_session
+# ----------------------------------------------------------------------------
 
 if hasattr(asyncio, "WindowsSelectorEventLoopPolicy"):
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -27,7 +54,7 @@ def _login(email: str, password: str) -> str:
 
 def test_e2e_upload_embedding_search(monkeypatch):
     """
-    US-08/US-10: Verifies document upload, mock OCR, mock embedding, and vector/text search.
+    US-08/US-10/US-09: Verifies document upload, mock OCR, mock embedding, and Unified Hybrid Search.
     """
     email = f"ui_{uuid.uuid4().hex[:8]}@example.com"
     password = "Passw0rd!"
@@ -58,6 +85,10 @@ def test_e2e_upload_embedding_search(monkeypatch):
         dv = s.get(DocumentVersion, vid)
         dv.ocr_text = "Bonjour intelligence artificielle"
         s.add(dv)
+        
+        c = s.get(Contribution, cid)
+        c.filiere = "INFO"
+        s.add(c)
         s.commit()
 
     def _fake_embed(text: str):
@@ -72,15 +103,28 @@ def test_e2e_upload_embedding_search(monkeypatch):
         s.add(c)
         s.commit()
 
-    r4 = client.get("/api/v1/search", params={"query": "intelligence", "top_k": 5})
+    # US-09: Unified Hybrid Search Test
+    # Test 1: Broad Query
+    r4 = client.get("/api/v1/search", params={"q": "intelligence", "top_k": 5})
     assert r4.status_code == 200
     items = r4.json()
     assert any(item["document_version_id"] == vid for item in items)
-
-    r5 = client.get("/api/v1/search/text", params={"q": "intelligence", "limit": 5, "offset": 0})
+    
+    # Assert Frontend Contract Compliance
+    first_item = items[0]
+    assert "snippet" in first_item
+    assert "tags" in first_item
+    assert "rrf_score" in first_item
+    
+    # Test 2: Faceted Query (Should match because we set filiere="INFO" above)
+    r5 = client.get("/api/v1/search", params={"q": "intelligence", "filiere": "INFO", "top_k": 5})
     assert r5.status_code == 200
-    items2 = r5.json()["items"]
-    assert any(it["version_id"] == vid for it in items2)
+    assert any(item["document_version_id"] == vid for item in r5.json())
+
+    # Test 3: Faceted Query (Should NOT match)
+    r6 = client.get("/api/v1/search", params={"q": "intelligence", "filiere": "MATH", "top_k": 5})
+    assert r6.status_code == 200
+    assert not any(item["document_version_id"] == vid for item in r6.json())
 
 
 def test_rag_pipeline_us13_compliance(monkeypatch):

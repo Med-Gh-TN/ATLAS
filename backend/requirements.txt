@@ -12,7 +12,8 @@ python-multipart
 minio
 redis
 celery
-requests
+requests==2.31.0
+urllib3==2.0.7
 email-validator
 pytest
 ruff
@@ -23,12 +24,13 @@ torch
 sentence-transformers
 pgvector
 alembic
-fastapi-limiter
+fastapi-limiter==0.1.5
 structlog
 paddlepaddle
 paddleocr
-langchain
-langchain-community
+langchain==0.0.352
+langchain-community==0.0.20
+langchain-core==0.1.23
 pandas
 tiktoken
 pyotp
@@ -41,4 +43,6 @@ keybert
 chromadb
 meilisearch
 weasyprint
+bcrypt
 argon2-cffi
+python-magic-bin

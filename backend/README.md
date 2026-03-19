@@ -40,7 +40,8 @@ alembic upgrade head
 Start the worker pool (Windows requires the `solo` pool execution):
 
 ```bash
-python run_celery.py -A app.core.celery_app -b redis://localhost:6379/0 worker --loglevel=info -P solo
+python run_celery.py worker --loglevel=info -P solo -b redis://localhost:6379/0
+
 ```
 
 ### 4. Testing
