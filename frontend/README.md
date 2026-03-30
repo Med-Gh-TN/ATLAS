@@ -1,64 +1,107 @@
-# ATLAS Platform - Frontend Microservice
+# 🖥️ ATLAS Frontend Client
 
-> **⚠️ ARCHITECTURAL DIRECTIVE:**
-> Do not document the broader ATLAS infrastructure, API startup, or database seeding here. 
-> The absolute source of truth for the project setup is located at the root level: `../README.md`.
+![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue?logo=typescript)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4+-38B2AC?logo=tailwind-css)
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)
 
-This directory contains the Next.js 14 (App Router) frontend, utilizing React, TailwindCSS, and TypeScript. 
-
-## 🛠️ Quick Reference Commands
-
-Ensure you have Node.js installed and your API backend is running (`http://localhost:8000`) before developing the frontend.
-
-### 1. Installation
-Install the required Node dependencies:
-```bash
-npm install
-
-```
-
-### 2. Development Server
-
-Start the Next.js development server with hot-module reloading:
-
-```bash
-npm run dev
-
-```
-
-* The application will be accessible at: `http://localhost:3000`
-
-### 3. Production Build
-
-Compile the application for production deployment. This will catch static typing errors and optimize the build:
-
-```bash
-npm run build
-npm run start
-
-```
-
-### 4. Code Quality & Linting
-
-Run ESLint to check for code quality and strict typing compliance:
-
-```bash
-npm run lint
-
-```
-
-*(Note: Husky pre-commit hooks are configured to run linting automatically prior to any git commit).*
+> The user-facing web application for the ATLAS Academic Knowledge Base. This client delivers a zero-latency, highly responsive experience for students, teachers, and administrators, interacting seamlessly with the core neural search and RAG backend.
 
 ---
 
-## 🔗 Environment Integration
+## 📌 Architecture Overview
 
-The frontend expects the backend API to be available. Ensure your local `.env.local` file (if applicable) correctly points to the local backend port:
+The ATLAS frontend is built for performance and maintainability, utilizing the latest web standards:
+* **Framework:** Next.js 14 leveraging the App Router for server-side rendering (SSR) and optimized routing.
+* **Language:** Strictly typed with TypeScript to ensure contract safety with our FastAPI backend.
+* **Styling:** Utility-first CSS via TailwindCSS for rapid, consistent, and responsive UI development.
+* **State Management:** (Standard React Hooks + Context API / Zustand/Redux if implemented) ensuring clean data flow for features like the active RAG chat and PDF telemetry.
 
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+---
 
+## 🚀 Local Development Setup
+
+Ensure you have completed **Phase 1 (Infrastructure Deployment)** and **Phase 2 (Backend Configuration)** from the [Main Project README](../README.md) before starting the frontend, as the UI requires the API to function.
+
+### Prerequisites
+* **Node.js:** v18.x or v20.x (LTS recommended)
+* **Package Manager:** `npm` (v9+)
+
+### Installation & Bootstrapping
+
+1. **Navigate to the frontend workspace:**
+   ```bash
+   cd frontend
+````
+
+2.  **Install dependencies:**
+    Ensure you have a clean installation of all required packages.
+
+    ```bash
+    npm install
+    ```
+
+3.  **Environment Configuration:**
+    Copy the example environment file to configure your local API connections.
+
+    ```bash
+    cp .env.example .env.local
+    ```
+
+    *(Ensure `NEXT_PUBLIC_API_URL` is pointing to your local FastAPI instance, typically `http://localhost:8000/api/v1`).*
+
+4.  **Start the Development Server:**
+    Launch Next.js with Fast Refresh enabled.
+
+    ```bash
+    npm run dev
+    ```
+
+5.  **Verify the Application:**
+    Open your browser and navigate to [http://localhost:3000](https://www.google.com/search?q=http://localhost:3000). You should see the ATLAS landing page.
+
+-----
+
+## 📜 Available Scripts
+
+Within the `frontend` directory, you can run several built-in commands:
+
+| Command | Description |
+| :--- | :--- |
+| `npm run dev` | Starts the local development server on port 3000. |
+| `npm run build` | Compiles the application for production deployment. |
+| `npm run start` | Starts a Node.js server to serve the production build. |
+| `npm run lint` | Runs ESLint to statically analyze the codebase for issues. |
+
+-----
+
+## 📂 Standard Project Structure
+
+ATLAS follows a standard Next.js 14 App Router paradigm. Familiarize yourself with these core directories:
+
+```text
+frontend/
+├── app/               # Next.js 14 App Router pages, layouts, and API routes
+├── components/        # Reusable React components (UI elements, layout wrappers)
+├── lib/               # Utility functions, Axios/Fetch API clients, and state stores
+├── types/             # Global TypeScript interfaces matching backend Pydantic schemas
+├── public/            # Static assets (images, icons, pdf.worker.js)
+├── tailwind.config.ts # TailwindCSS theme and utility configuration
+└── package.json       # Project dependencies and script definitions
 ```
 
-*For user stories, RBAC definitions, and the complete Docker startup sequence, refer exclusively to the root documentation.*
+-----
 
+## 🛠️ Developer Guidelines
+
+### Strictly Typed API Contracts
+
+All API responses must be strongly typed. When building new features, ensure that the interfaces in `types/api.ts` perfectly match the Pydantic schemas defined in the FastAPI backend to prevent runtime mapping errors.
+
+### Role-Based UI Rendering
+
+The UI dynamically renders components based on the user's RBAC profile (Student, Teacher, Admin). Always wrap protected features (like the Moderation Dashboard or Admin Settings) with the appropriate role-check hooks from the auth store.
+
+-----
+
+*For backend API integration details, please refer to the [Backend Documentation](https://www.google.com/search?q=../backend/README.md).*
