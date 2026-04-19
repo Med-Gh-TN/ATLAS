@@ -1,0 +1,124 @@
+# ==========================================
+# OMNI-ARCHITECT: ENVIRONMENT CONTRACT v3.0
+# Model: gemini-3.1-flash-lite-preview (Free Tier)
+# ==========================================
+#
+# HARD LIMITS (from Google AI Studio console):
+#   RPM  = 15   (requests per minute)
+#   TPM  = 250,000 (tokens per minute, input+output combined)
+#   RPD  = 500  (requests per day — THE GOVERNING CONSTRAINT)
+#
+# BUDGET DERIVATION:
+#   Safe RPM  = 15 × 0.67 = 10 RPM  (33% margin → never burst into 429)
+#   Safe TPM  = 250K × 0.80 = 200K  (20% margin)
+#   Safe RPD  = 500 × 0.80 = 400    (20% margin for miscounts/retries)
+#
+# RPD ALLOCATION (400 safe calls/day):
+#   Ingestion calls per document page ≈ 3 calls
+#     (1× entity extraction, 1× relationship extraction, 1× VLM if image/complex)
+#   Text-only 20-page doc  ≈ 20 × 2  = 40  calls → fits ~10 docs/day
+#   VLM-OCR   20-page doc  ≈ 20 × 3  = 60  calls → fits ~6  docs/day
+#   Query calls per query  ≈ 2 calls  (1× classify, 1× synthesis)
+#   Reserve 100 RPD for queries → ~50 queries/day
+#   Reserve 300 RPD for ingestion
+#
+# TOKEN BUDGET PER CALL:
+#   200K TPM / 10 RPM = 20,000 tokens/call budget
+#   Input  cap: ~8,000  tokens (chunk + system prompt + context)
+#   Output cap:   512  tokens (entity/relationship extraction output)
+#   VLM pages:  ~4,000 tokens input per page image (150 DPI)
+#
+# CHUNK SIZE DERIVATION (minimize RPD spend):
+#   Target: ≤ 2 LLM extraction calls per chunk (entity + relationship)
+#   Larger chunks → fewer chunks → fewer calls → more RPD headroom
+#   CHUNK_TOKEN_SIZE = 1500 → ~8-10 chunks per 20-page doc → 16-20 extraction calls
+#   This leaves 280+ RPD for VLM and query operations
+# ==========================================
+
+
+# ── 1. AI INFERENCE LAYER (Google Gemini) ──────────────────────────────────────
+GEMINI_API_KEY=<INSERT_YOUR_GEMINI_API_KEY_HERE>
+GEMINI_MODEL_NAME=gemini-3.1-flash-lite-preview
+
+# ── 2. FALLBACK AI PROVIDER (OpenRouter) ───────────────────────────────────
+OPENROUTER_API_KEY=<INSERT_YOUR_OPENROUTER_API_KEY_HERE>
+# Note the "google/" prefix required by OpenRouter
+OPENROUTER_MODEL_NAME=google/gemini-3.1-flash-lite-preview
+LLM_RETRY_ATTEMPTS=10                               # optional, defaults to 2
+
+# RPM: 10 of 15 available (33% safety margin)
+# Throttle delay = 60 / 10 + 0.5 buffer = 6.5s per call
+GEMINI_RPM_LIMIT=10
+
+# TPM hard cap per individual response. Keeps each call under 512 output tokens.
+# Entity/relationship extraction does NOT need long outputs — only JSON lists.
+# Synthesis answers need more headroom; the model_bridge overrides this for query calls.
+GEMINI_MAX_OUTPUT_TOKENS=512
+
+# Concurrency: MUST be 1. Prevents burst RPM spikes from concurrent LightRAG fan-out.
+# With RPM=10 and MAX_ASYNC=1, we are guaranteed never to exceed 10 calls/minute.
+GEMINI_MAX_ASYNC_CALLS=1
+
+# RPD tracking: Passed to model_bridge for soft daily-limit awareness logging.
+# The system does NOT hard-stop at this number — it logs a WARNING so the operator
+# can manually pause ingestion if needed.
+GEMINI_RPD_SOFT_LIMIT=400
+
+# ── 3. VECTOR STORAGE LAYER (Qdrant via Docker) ───────────────────────────────
+QDRANT_URL=http://localhost:6333
+QDRANT_API_KEY=<INSERT_QDRANT_API_KEY_IF_APPLICABLE>
+# QDRANT_PATH=qdrant_data/   # Uncomment to use local file storage instead of Docker
+
+# Upsert batch size: 32 is optimal for 2D ColBERT matrices.
+# Larger batches risk Qdrant timeout on slow hardware; smaller wastes round-trips.
+QDRANT_UPSERT_BATCH_SIZE=32
+
+# ── 4. EMBEDDING LAYER (Local / FastEmbed ColBERT — NO API COST) ──────────────
+# ColBERT runs 100% locally. Embedding calls consume ZERO RPM/TPM/RPD budget.
+EMBEDDER_MODEL_NAME=jinaai/jina-colbert-v2
+EMBEDDING_DIMENSION=128
+
+# ── 5. STORAGE DIRECTORIES (Relative to project root) ─────────────────────────
+DIR_INPUTS=OCR/inputs
+DIR_OUTPUT=OCR/output
+DIR_WORKSPACE=rag_workspace
+
+# ── 6. SERVER CONFIGURATION ───────────────────────────────────────────────────
+SERVER_HOST=localhost
+SERVER_PORT=8000
+
+# ── 7. RAG CHUNKING PARAMETERS ────────────────────────────────────────────────
+# CHUNK_TOKEN_SIZE: 1500 tokens per chunk.
+# Derivation: Maximizes semantic completeness while minimizing extraction API calls.
+# At 1500 tok/chunk, a 20-page doc produces ~8 chunks → 16 extraction calls (well within RPD).
+# WARNING: Do NOT lower below 800. Smaller chunks exponentially increase RPD spend.
+CHUNK_TOKEN_SIZE=1500
+
+# CHUNK_OVERLAP: 200 tokens (13% of chunk size).
+# Standard practice for ColBERT: enough to preserve cross-chunk entity context.
+CHUNK_OVERLAP=200
+
+# MAX_PAGES_PER_SLICE: 5 pages per PDF slice.
+# Docling processes each slice independently. 5 pages keeps memory stable.
+# At 1500 tok/chunk and ~750 words/page: 5 pages ≈ 3,750 words ≈ 2-3 chunks per slice.
+MAX_PAGES_PER_SLICE=5
+
+# ── 8. VLM OCR CONFIGURATION (CRASH-03 FIX) ──────────────────────────────────
+# FORCE_VLM_OCR: Set to 'true' for ANY handwritten, scanned, or image-heavy PDF.
+# When true, Docling text extraction is BYPASSED. Each page is rendered as a JPEG
+# and sent to Gemini Vision for full semantic OCR. This costs ~1 RPM call per page.
+# Budget impact: A 20-page handwritten doc = 20 VLM calls. Plan accordingly.
+FORCE_VLM_OCR=false
+
+# VLM_OCR_DPI: Resolution for page-to-image rendering.
+# 150 DPI: ~800×1100px per page ≈ 3,500-5,000 input tokens. Optimal quality/cost ratio.
+# 100 DPI: ~530×730px per page  ≈ 1,500-2,500 input tokens. Use if hitting TPM limits.
+# 200 DPI: Higher quality, ~8,000+ tokens/page. Use only for tiny equations/microtext.
+# WARNING: Do NOT set above 150 unless the document contains sub-2mm text.
+VLM_OCR_DPI=150
+
+# VLM_OCR_BATCH_PAGES: Number of pages to send per Gemini Vision call.
+# 1 = one page per call (safest, most precise). Recommended for handwriting.
+# 2 = two pages per call (halves RPD cost, acceptable for printed+handwritten mix).
+# WARNING: Never set above 2. Multi-page images inflate token cost past TPM budget.
+VLM_OCR_BATCH_PAGES=1
