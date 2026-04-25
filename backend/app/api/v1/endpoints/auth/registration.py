@@ -8,6 +8,7 @@ from pydantic import BaseModel, EmailStr, Field
 from app.db.session import get_session
 from app.models.user import User, UserCreate, UserRead, OTPPurpose
 from app.core import security
+from app.core.security import hash_email
 from app.core.limits import limiter
 # SOTA FIX: Import the dedicated otp_service
 from app.services import otp_service
@@ -30,7 +31,7 @@ class OTPVerify(BaseModel):
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(limiter(5, 60))])
 async def register(
-    user_in: UserCreate, 
+    user_in: UserCreate,
     session: AsyncSession = Depends(get_session)
 ) -> Any:
     """
@@ -41,12 +42,12 @@ async def register(
     existing_user = result.scalars().first()
     if existing_user:
         # SIDE-EFFECT: Log enumeration attempt
-        logger.warning(f"SECURITY ALERT: Registration attempt for existing email: {user_in.email}")
+        logger.warning(f"SECURITY ALERT: Registration attempt for existing email: {hash_email(user_in.email)}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="A user with this email already exists."
         )
-    
+
     try:
         user = User(
             email=user_in.email,
@@ -56,46 +57,46 @@ async def register(
             level=user_in.level,
             hashed_password=security.get_password_hash(user_in.password),
             is_verified=False,
-            is_active=False 
+            is_active=False
         )
         session.add(user)
-        await session.flush() 
-        
+        await session.flush()
+
         # SOTA FIX: Call create_email_otp from otp_service
         otp_created = await otp_service.create_email_otp(
-            session=session, 
-            user=user, 
+            session=session,
+            user=user,
             purpose=OTPPurpose.ACCOUNT_ACTIVATION
         )
-        
+
         if not otp_created:
             await session.rollback()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to send verification email. Please try again later."
             )
-            
+
         await session.commit()
         await session.refresh(user)
-        
+
         # SIDE-EFFECT: Audit log successful registration
-        logger.info(f"AUDIT: New user registered successfully. ID: {user.id}, Email: {user.email}")
+        logger.info(f"AUDIT: New user registered successfully. ID: {user.id}, Email: {hash_email(user.email)}")
         return user
 
     except HTTPException:
         raise
     except Exception as e:
         await session.rollback()
-        logger.error(f"Registration Error for {user_in.email}: {str(e)}")
+        logger.error(f"Registration Error for {hash_email(user_in.email)}: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An internal server error occurred during registration."
         )
 
 
 @router.post("/verify-otp")
 async def verify_otp(
-    payload: OTPVerify, 
+    payload: OTPVerify,
     session: AsyncSession = Depends(get_session)
 ) -> Any:
     """
@@ -105,41 +106,41 @@ async def verify_otp(
     try:
         # SOTA FIX: Call verify_email_otp from otp_service
         success = await otp_service.verify_email_otp(
-            session=session, 
-            email=payload.email, 
+            session=session,
+            email=payload.email,
             code=payload.code,
             allowed_purposes=(OTPPurpose.ACCOUNT_ACTIVATION,)
         )
-        
+
         if not success:
             await session.rollback()
             # SIDE-EFFECT: Log failed OTP verification
-            logger.warning(f"SECURITY ALERT: Failed OTP verification attempt for {payload.email}")
+            logger.warning(f"SECURITY ALERT: Failed OTP verification attempt for {hash_email(payload.email)}")
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, 
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid or expired verification code."
             )
-            
+
         await session.commit()
-        
+
         # SIDE-EFFECT: Audit log successful activation
-        logger.info(f"AUDIT: User account activated via OTP. Email: {payload.email}")
+        logger.info(f"AUDIT: User account activated via OTP. Email: {hash_email(payload.email)}")
         return {"message": "Email successfully verified. Account activated."}
-        
+
     except HTTPException:
         raise
     except Exception as e:
         await session.rollback()
-        logger.error(f"OTP Verification Error for {payload.email}: {str(e)}")
+        logger.error(f"OTP Verification Error for {hash_email(payload.email)}: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An internal server error occurred during verification."
         )
 
 
 @router.post("/request-otp", dependencies=[Depends(limiter(3, 3600))])
 async def request_otp(
-    payload: OTPRequest, 
+    payload: OTPRequest,
     session: AsyncSession = Depends(get_session)
 ) -> Any:
     """
@@ -149,11 +150,11 @@ async def request_otp(
     try:
         result = await session.execute(select(User).where(User.email == payload.email))
         user = result.scalars().first()
-        
+
         if user:
             # SOTA FIX: Call create_email_otp from otp_service
             otp_created = await otp_service.create_email_otp(
-                session=session, 
+                session=session,
                 user=user,
                 purpose=OTPPurpose.ACCOUNT_ACTIVATION
             )
@@ -161,14 +162,14 @@ async def request_otp(
                 await session.commit()
             else:
                 await session.rollback()
-                
+
         # Always return success to prevent email enumeration attacks
-        logger.info(f"AUDIT: OTP request processed for {payload.email}")
+        logger.info(f"AUDIT: OTP request processed for {hash_email(payload.email)}")
         return {"message": "If the account exists, a new code has been sent."}
     except Exception as e:
         await session.rollback()
-        logger.error(f"Request OTP Error for {payload.email}: {str(e)}")
+        logger.error(f"Request OTP Error for {hash_email(payload.email)}: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An internal server error occurred processing your request."
         )

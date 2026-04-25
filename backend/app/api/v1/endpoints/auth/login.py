@@ -8,6 +8,7 @@ from redis.asyncio import Redis
 from app.db.session import get_session
 from app.core.config import settings
 from app.core.limits import limiter
+from app.core.security import hash_email
 # ARCHITECTURE FIX: Import the robust connection pool instead of relying on fragile app.state
 from app.core.redis import get_redis_client
 from app.services import auth_service
@@ -19,7 +20,7 @@ router = APIRouter()
 @router.post("/login", dependencies=[Depends(limiter(5, 60))])
 async def login(
     response: Response,
-    form_data: OAuth2PasswordRequestForm = Depends(), 
+    form_data: OAuth2PasswordRequestForm = Depends(),
     session: AsyncSession = Depends(get_session),
     redis_client: Redis = Depends(get_redis_client) # SOTA FIX: Injected for US-04 logic compliance
 ) -> Any:
@@ -31,27 +32,27 @@ async def login(
     # ARCHITECTURE ALIGNMENT: Passed arguments strictly matching auth_service.authenticate_user signature:
     # (session: AsyncSession, email: str, password: str, redis_client: Any)
     user = await auth_service.authenticate_user(session, form_data.username, form_data.password, redis_client)
-    
+
     if not user:
         # SIDE-EFFECT: Log failed attempts for potential Fail2Ban / SIEM ingestion
-        logger.warning(f"SECURITY ALERT: Failed login attempt for username: {form_data.username}")
+        logger.warning(f"SECURITY ALERT: Failed login attempt for username hash: {hash_email(form_data.username)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if not user.is_verified or not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, 
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Your account is not activated or verified."
         )
-    
+
     access_token, refresh_token = auth_service.create_user_tokens(
-        user.id, 
+        user.id,
         user.role.value if hasattr(user.role, 'value') else str(user.role)
     )
-    
+
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
@@ -60,10 +61,10 @@ async def login(
         samesite="lax",
         max_age=7 * 24 * 60 * 60 # 7 days
     )
-    
+
     # SIDE-EFFECT: Audit log successful login
     logger.info(f"User {user.id} logged in successfully.")
-    
+
     return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -74,20 +75,20 @@ async def refresh_token(
     redis_client: Redis = Depends(get_redis_client)
 ) -> Any:
     """
-    Validates the refresh token from the httpOnly cookie, blacklists it, 
+    Validates the refresh token from the httpOnly cookie, blacklists it,
     and issues a new pair of access/refresh tokens.
     """
     token = request.cookies.get("refresh_token")
     if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token missing.")
-        
+
     new_tokens = await auth_service.process_refresh_token(redis_client, token)
     if not new_tokens:
         response.delete_cookie("refresh_token")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token.")
-        
+
     access_token, refresh_token = new_tokens
-    
+
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
@@ -96,7 +97,7 @@ async def refresh_token(
         samesite="lax",
         max_age=7 * 24 * 60 * 60
     )
-    
+
     return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -112,6 +113,6 @@ async def logout(
     token = request.cookies.get("refresh_token")
     if token:
         await auth_service.revoke_token(redis_client, token)
-        
+
     response.delete_cookie("refresh_token")
     return {"message": "Successfully logged out."}

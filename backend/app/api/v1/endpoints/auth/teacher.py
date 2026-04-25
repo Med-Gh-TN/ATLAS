@@ -10,6 +10,7 @@ from pydantic import BaseModel, EmailStr, Field
 from app.db.session import get_session
 from app.models.user import User, OTPPurpose, TeacherProfile
 from app.core.limits import limiter
+from app.core.security import hash_email
 from app.services import auth_service, otp_service
 from app.core.redis import get_redis_client
 
@@ -50,14 +51,14 @@ async def validate_invite_token(
     if not profile or not profile.user:
         logger.warning("SECURITY ALERT: Invalid teacher invite token validation attempt.")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or consumed invitation token."
         )
 
     if profile.invite_expires_at and profile.invite_expires_at < datetime.utcnow():
-        logger.warning(f"SECURITY ALERT: Expired token validation attempt for {profile.user.email}.")
+        logger.warning(f"SECURITY ALERT: Expired token validation attempt for {hash_email(profile.user.email)}.")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invitation token has expired. Please contact your administrator."
         )
 
@@ -79,15 +80,15 @@ async def request_teacher_otp(
     profile = result.scalars().first()
 
     if not profile or not profile.user or profile.user.email != payload.email:
-        logger.warning(f"SECURITY ALERT: Token/Email mismatch during OTP request for {payload.email}.")
+        logger.warning(f"SECURITY ALERT: Token/Email mismatch during OTP request for {hash_email(payload.email)}.")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid token or email mismatch."
         )
 
     if profile.invite_expires_at and profile.invite_expires_at < datetime.utcnow():
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invitation token has expired."
         )
 
@@ -97,16 +98,16 @@ async def request_teacher_otp(
         user=profile.user,
         purpose=OTPPurpose.TEACHER_ONBOARDING
     )
-    
+
     if not code:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to dispatch OTP email. Please try again."
         )
-        
+
     # SIDE-EFFECT: Persist the OTP hash to the database
     await session.commit()
-    logger.info(f"AUDIT: Onboarding OTP successfully dispatched to {payload.email}")
+    logger.info(f"AUDIT: Onboarding OTP successfully dispatched to {hash_email(payload.email)}")
     return {"message": "OTP dispatched successfully."}
 
 
@@ -114,10 +115,10 @@ async def request_teacher_otp(
 async def activate_teacher(
     payload: TeacherActivationRequest,
     session: AsyncSession = Depends(get_session),
-    redis_client: Any = Depends(get_redis_client) 
+    redis_client: Any = Depends(get_redis_client)
 ) -> Any:
     """
-    US-05 (Activation): Atomically verifies the teacher's single-use OTP, updates their 
+    US-05 (Activation): Atomically verifies the teacher's single-use OTP, updates their
     temporary password, populates their TeacherProfile data, and invalidates the invite token.
     """
     try:
@@ -128,13 +129,13 @@ async def activate_teacher(
 
         if not profile or not profile.user or profile.user.email != payload.email:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, 
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid invitation token or email mismatch."
             )
 
         if profile.invite_expires_at and profile.invite_expires_at < datetime.utcnow():
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, 
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invitation token has expired."
             )
 
@@ -145,10 +146,10 @@ async def activate_teacher(
             code=payload.otp_code,
             allowed_purposes=(OTPPurpose.TEACHER_ONBOARDING,)
         )
-        
+
         if not success:
             await session.rollback()
-            logger.warning(f"SECURITY ALERT: Failed teacher activation OTP verification for {payload.email}")
+            logger.warning(f"SECURITY ALERT: Failed teacher activation OTP verification for {hash_email(payload.email)}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid, expired, or already used activation code."
@@ -161,10 +162,10 @@ async def activate_teacher(
             new_password=payload.password,
             redis_client=redis_client
         )
-        
+
         if not pw_reset_success:
             await session.rollback()
-            logger.error(f"Failed to set new secure password during teacher activation for {payload.email}")
+            logger.error(f"Failed to set new secure password during teacher activation for {hash_email(payload.email)}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to set new password."
@@ -173,25 +174,25 @@ async def activate_teacher(
         # 4. State Modification: Update Profile & NULLIFY Token
         profile.specialization = payload.specialization
         profile.modules = payload.modules
-        
+
         # CRITICAL SECURITY STEP: Destroy the single-use token to prevent replay attacks
         profile.invite_token = None
         profile.invite_expires_at = None
-        
+
         session.add(profile)
 
         # 5. Commit the entire transaction atomically
         await session.commit()
-        
-        logger.info(f"AUDIT: Teacher account successfully activated and token destroyed. Email: {payload.email}")
+
+        logger.info(f"AUDIT: Teacher account successfully activated and token destroyed. Email hash: {hash_email(payload.email)}")
         return {"message": "Teacher account successfully activated."}
 
     except HTTPException:
         raise
     except Exception as e:
         await session.rollback()
-        logger.error(f"Teacher Activation Error for {payload.email}: {str(e)}")
+        logger.error(f"Teacher Activation Error for {hash_email(payload.email)}: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An internal server error occurred during activation."
         )
