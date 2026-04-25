@@ -1,5 +1,6 @@
 import uuid
 import bcrypt
+import hashlib
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
@@ -74,3 +75,12 @@ def decode_token(token: str) -> Optional[Dict[str, Any]]:
         return payload
     except JWTError:
         return None
+
+def hash_email(email: str) -> str:
+    """
+    Generates a truncated SHA-256 hash of an email for secure logging.
+    This prevents PII leakage in logs while still allowing traceabilty.
+    """
+    if not email:
+        return "unknown"
+    return hashlib.sha256(email.lower().strip().encode()).hexdigest()[:12]
