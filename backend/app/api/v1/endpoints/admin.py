@@ -112,11 +112,11 @@ async def import_teachers(
     
     email_regex = re.compile(r"^[\w\.-]+@([\w\.-]+\.\w+)$")
 
-    for index, row in df.iterrows():
-        row_num = index + 2 # +2 accounts for 0-index and CSV header
-        email = str(row['email'])
-        full_name = str(row['full_name'])
-        dept_name = str(row['department_name'])
+    for row in df.itertuples(index=True):
+        row_num = row.Index + 2 # +2 accounts for 0-index and CSV header
+        email = str(row.email)
+        full_name = str(row.full_name)
+        dept_name = str(row.department_name)
         
         # 1. Basic Format Validation
         match = email_regex.match(email)
