@@ -1,0 +1,46 @@
+# ============================================================================
+# Omni-Architect — Dependency Manifest (v6.1 CPU-Realigned)
+# ============================================================================
+# CRITICAL FIX: onnxruntime-gpu → onnxruntime
+# onnxruntime-gpu ships WITHOUT the CPUExecutionProvider C++ kernels in its
+# default wheel. When FASTEMBED_PROVIDER=CPUExecutionProvider is set, the
+# GPU build falls through to a "best-effort" provider search that either:
+#   (a) tries to load libcuda.so and crashes on machines without CUDA runtime
+#   (b) silently degrades to a fallback that is missing the Slice kernel
+#       required by Jina-ColBERT-v2's attention head → "out-of-bounds" crash
+# The standard `onnxruntime` wheel contains the full CPU kernel library.
+# ============================================================================
+
+raganything
+docling
+fastembed
+qdrant-client
+google-generativeai
+python-dotenv
+fastapi
+uvicorn
+python-multipart
+pypdf
+pymupdf
+litellm
+rich
+
+# ── CRITICAL: CPU-only ONNX runtime ─────────────────────────────────────────
+# DO NOT replace with onnxruntime-gpu unless you configure CUDAExecutionProvider
+# in FASTEMBED_PROVIDER and have the matching CUDA toolkit + cuDNN installed.
+onnxruntime
+
+# ── Tiktoken: required for true token-level chunking + truncation guardrail ──
+# Without this, pdf_worker falls back to word-count approximation (±30% error)
+# and the tensor truncation guardrail in bridge.py cannot enforce the exact
+# 8192-token hard limit on Jina-ColBERT-v2's coordinate space.
+tiktoken
+
+aiohttp
+openai
+asyncpg
+
+
+sentence-transformers
+
+neo4j

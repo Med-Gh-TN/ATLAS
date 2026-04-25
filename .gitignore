@@ -1,0 +1,54 @@
+# =========================
+# Project-Specific Data
+# =========================
+
+# Database storage and logs
+qdrant_data/
+
+# Local RAG caches and state files
+rag_workspace/
+local_cache/
+# Generated OCR outputs (Docling JSON, markdown, images, etc.)
+output/
+
+# Raw input files (prevents pushing large PDFs or images)
+inputs/
+
+# =========================
+# Python & Environments
+# =========================
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Environment variables / Secrets
+.env
+*.env
+
+# Python byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# =========================
+# System & IDE
+# =========================
+
+# VS Code / IDE settings
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+# Omni-Architect SOTA Ignores
+venv/
+local_cache/
+rag_workspace/
+OCR/output/
+.env
+__pycache__/
+venv/
+local_cache/
