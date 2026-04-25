@@ -1,45 +1,58 @@
-# =========================
-# Project-Specific Data
-# =========================
-
-# Database storage and logs
-qdrant_data/
-
-# Local RAG caches and state files
-rag_workspace/
-local_cache/
-# Generated OCR outputs (Docling JSON, markdown, images, etc.)
-output/
-
-# Raw input files (prevents pushing large PDFs or images)
-inputs/
-
-# =========================
-# Python & Environments
-# =========================
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
 # Virtual environments
 venv/
 env/
-.venv/
+ENV/
 
-# Environment variables / Secrets
-.env
-*.env
-
-# Python byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-
-# =========================
-# System & IDE
-# =========================
-
-# VS Code / IDE settings
-.vscode/
+# IDE
 .idea/
+.vscode/
+*.swp
+*.swo
 
-# OS generated files
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Ruff
+.ruff_cache/
+
+# Environment files
+.env
+.env.local
+
+# Logs
+*.log
+
+# Node (root level - already covered in frontend/.gitignore but added for safety)
+node_modules/
+
+# OS
 .DS_Store
 Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp

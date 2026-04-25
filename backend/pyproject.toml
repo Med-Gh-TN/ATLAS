@@ -1,0 +1,78 @@
+[project]
+name = "atlas-backend"
+version = "0.1.0"
+description = "ATLAS FastAPI backend"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi",
+  "uvicorn[standard]",
+  "sqlmodel",
+  "asyncpg",
+  "aiosqlite",
+  "psycopg2-binary",
+  "pydantic>=2.0.0",
+  "pydantic-settings",
+  "pydantic[email]",
+  "python-jose[cryptography]",
+  "python-multipart",
+  "minio",
+  "redis",
+  "celery",
+  "requests==2.31.0",
+  "urllib3==2.0.7",
+  "email-validator",
+  "pytest",
+  "pytest-asyncio",
+  "pytest-cov",
+  "ruff",
+  "mypy",
+  "httpx",
+  "torch",
+  "sentence-transformers",
+  "pgvector",
+  "alembic",
+  "fastapi-limiter==0.1.5",
+  "structlog",
+  "langchain",
+  "langchain-community",
+  "langchain-core",
+  "pandas",
+  "tiktoken",
+  "pyotp",
+  "resend",
+  "pdfplumber",
+  "langdetect",
+  "opencv-python-headless",
+  "simhash",
+  "keybert",
+  "chromadb",
+  "meilisearch",
+  "weasyprint",
+  "bcrypt",
+  "argon2-cffi",
+  "python-magic-bin",
+  "xlsxwriter",
+  "langchain-text-splitters",
+  "jinja2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = false
+warn_unused_configs = true
+plugins = []

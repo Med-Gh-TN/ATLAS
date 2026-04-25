@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Contribution Update</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #171717; line-height: 1.6; background-color: #f9fafb; padding: 20px; margin: 0;">
+
+        {% set is_approved = status == "APPROVED" %}
+        {% set is_revision = status == "REVISION_REQUESTED" %}
+        {% set status_color = "#10b981" if is_approved else ("#f59e0b" if is_revision else "#ef4444") %}
+        {% set status_text = "Approved" if is_approved else ("Revision Requested" if is_revision else "Rejected") %}
+
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 40px; border: 1px solid #e5e5e5; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h2 style="color: #000000; font-size: 24px; font-weight: 700; margin: 0; letter-spacing: -0.5px;">Contribution Update</h2>
+            </div>
+
+            <p style="font-size: 16px; color: #374151;">Hello,</p>
+            <p style="font-size: 16px; color: #374151;">
+                The review of your document <strong>"{{ title }}"</strong> is complete.
+            </p>
+
+            <div style="margin-top: 24px;">
+                <span style="font-size: 14px; font-weight: 700; color: {{ status_color }}; text-transform: uppercase; letter-spacing: 0.05em; display: block;">Status: {{ status_text }}</span>
+
+                {% if is_approved %}
+                <div style="display: inline-block; margin-top: 16px; padding: 4px 12px; background-color: #ecfdf5; border: 1px solid #10b981; border-radius: 999px;">
+                    <span style="font-size: 12px; color: #065f46; font-weight: 700;">+50 XP CREDITED</span>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if reason %}
+            <div style="margin-top: 24px; padding: 20px; background-color: #fef2f2; border-left: 4px solid {{ status_color }}; border-radius: 4px;">
+                <p style="margin: 0; font-size: 14px; color: #991b1b; font-weight: 600;">Moderator Feedback:</p>
+                <p style="margin: 8px 0 0 0; font-size: 14px; color: #b91c1c; line-height: 1.5;">"{{ reason }}"</p>
+            </div>
+            {% endif %}
+
+            <p style="margin-top: 32px; font-size: 14px; color: #6b7280;">
+                {% if is_approved %}
+                Your document is now live in the library.
+                {% else %}
+                You may review the feedback and submit an improved version from your dashboard.
+                {% endif %}
+            </p>
+
+            <div style="margin-top: 40px; border-top: 1px solid #f3f4f6; padding-top: 24px; text-align: center;">
+                <p style="font-size: 12px; color: #9ca3af; margin: 0;">
+                    &copy; {{ current_year }} ATLAS Platform. Built for Sfax CS Students.
+                </p>
+            </div>
+        </div>
+    </body>
+</html>

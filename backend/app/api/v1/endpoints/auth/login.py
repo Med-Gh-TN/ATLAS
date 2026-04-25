@@ -1,0 +1,207 @@
+import logging
+from typing import Any
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from redis.asyncio import Redis
+
+from app.db.session import get_session
+from app.core.config import settings
+from app.core.limits import limiter
+# ARCHITECTURE FIX: Import the robust connection pool instead of relying on fragile app.state
+from app.core.redis import get_redis_client
+
+# ARCHITECTURAL FIX: Re-routed to the new IAM Bounded Context
+from app.services.iam import auth_service
+
+from app.models.user import User, TeacherProfile
+from app.core.security import get_password_hash
+from pydantic import BaseModel
+from datetime import datetime
+
+logger = logging.getLogger(__name__)
+router = APIRouter()
+
+class SetupPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+# US-24: Strict rate limiting applied to authentication (5 req/min/IP)
+@router.post("/login", dependencies=[Depends(limiter(5, 60))])
+async def login(
+    response: Response,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    session: AsyncSession = Depends(get_session),
+    redis_client: Redis = Depends(get_redis_client) # SOTA FIX: Injected for US-04 logic compliance
+) -> Any:
+    """
+    Standard OAuth2 compatible token login.
+    Generates an access token and securely sets a refresh token in an httpOnly cookie.
+    Guarded by US-24 strict rate limiting.
+    """
+    # ARCHITECTURE ALIGNMENT: Passed arguments strictly matching auth_service.authenticate_user signature:
+    # (session: AsyncSession, email: str, password: str, redis_client: Any)
+    user = await auth_service.authenticate_user(session, form_data.username, form_data.password, redis_client)
+
+    if not user:
+        # SIDE-EFFECT: Log failed attempts for potential Fail2Ban / SIEM ingestion
+        logger.warning(f"SECURITY ALERT: Failed login attempt for username: {form_data.username}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not user.is_verified or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account is not activated or verified."
+        )
+
+    if user.role == "ADMIN" or (hasattr(user.role, 'value') and user.role.value == "ADMIN"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admins must use the dedicated /auth/admin/login portal."
+        )
+
+    access_token, refresh_token = auth_service.create_user_tokens(
+        user.id,
+        user.role.value if hasattr(user.role, 'value') else str(user.role)
+    )
+
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=settings.ENVIRONMENT == "production",  # True in prod, False in dev
+        samesite="lax",
+        max_age=7 * 24 * 60 * 60 # 7 days
+    )
+
+    # SIDE-EFFECT: Audit log successful login
+    logger.info(f"User {user.id} logged in successfully.")
+
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.post("/refresh")
+async def refresh_token(
+    request: Request,
+    response: Response,
+    redis_client: Redis = Depends(get_redis_client)
+) -> Any:
+    """
+    Validates the refresh token from the httpOnly cookie, blacklists it,
+    and issues a new pair of access/refresh tokens.
+    """
+    token = request.cookies.get("refresh_token")
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token missing.")
+
+    new_tokens = await auth_service.process_refresh_token(redis_client, token)
+    if not new_tokens:
+        response.delete_cookie("refresh_token")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token.")
+
+    access_token, refresh_token = new_tokens
+
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=settings.ENVIRONMENT == "production",  # True in prod, False in dev
+        samesite="lax",
+        max_age=7 * 24 * 60 * 60
+    )
+
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.post("/logout")
+async def logout(
+    request: Request,
+    response: Response,
+    redis_client: Redis = Depends(get_redis_client)
+) -> Any:
+    """
+    Logs the user out by blacklisting their refresh token and clearing the cookie.
+    """
+    token = request.cookies.get("refresh_token")
+    if token:
+        await auth_service.revoke_token(redis_client, token)
+
+    response.delete_cookie("refresh_token")
+    return {"message": "Successfully logged out."}
+
+
+@router.post("/setup-password")
+async def setup_password(
+    payload: SetupPasswordRequest,
+    response: Response,
+    session: AsyncSession = Depends(get_session)
+) -> Any:
+    """
+    US-05 (Completed): Consumes the Magic Link token securely.
+    Resolves the associated Teacher Profile, verifies expiration,
+    sets the new password, activates the Account, and provisions a JWT.
+    """
+    # 1. Secure Token De-referencing
+    result = await session.execute(
+        select(TeacherProfile, User)
+        .join(User, User.id == TeacherProfile.user_id)
+        .where(TeacherProfile.invite_token == payload.token)
+    )
+    row = result.first()
+
+    if not row:
+        logger.warning(f"SECURITY ALERT: Invalid Magic Link setup attempt with token {payload.token}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired magic link."
+        )
+
+    profile, user = row
+
+    # 2. Expiration Verification
+    if profile.invite_expires_at and profile.invite_expires_at < datetime.utcnow():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The magic link has expired. Please contact your Administrator."
+        )
+
+    # 3. Account Activation State Updates
+    user.hashed_password = get_password_hash(payload.new_password)
+    user.is_active = True
+    user.is_verified = True
+
+    # 4. Burn the Token Mechanism
+    profile.invite_token = None
+    profile.invite_expires_at = None
+
+    session.add(user)
+    session.add(profile)
+    await session.commit()
+
+    logger.info(f"AUDIT SUCCESS: Teacher {user.email} securely activated their account via Magic Link.")
+
+    # 5. Native Hydration (Seamless Login)
+    access_token, refresh_token = auth_service.create_user_tokens(
+        user.id,
+        user.role.value if hasattr(user.role, 'value') else str(user.role)
+    )
+
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=settings.ENVIRONMENT == "production",
+        samesite="lax",
+        max_age=7 * 24 * 60 * 60
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "message": "Account successfully activated"
+    }

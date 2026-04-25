@@ -1,230 +1,84 @@
-# ════════════════════════════════════════════════════════════════════════════
-# Omni-Architect — Enterprise Infrastructure Stack
-# ════════════════════════════════════════════════════════════════════════════
-#
-# Services
-# ────────
-#   qdrant    — Vector DB (ColBERT MaxSim retrieval)        Port 6333/6334
-#   postgres  — Relational source of truth (Document UUIDs)  Port 5432
-#   redis     — In-memory KV cache (LightRAG KV + LLM cache) Port 6379
-#   neo4j     — Enterprise graph DB (KG entities/relations)  Port 7474/7687
-#
-# Data isolation model
-# ────────────────────
-# Each service owns its data via a named Docker volume.
-# Named volumes (vs bind-mounts) are managed by the Docker daemon — they
-# survive container recreation, support snapshots, and avoid permission
-# issues on Linux hosts.
-#
-# Startup order
-# ─────────────
-# Application startup depends on all four services.  Use healthcheck-based
-# depends_on in your application's service definition (shown as comments)
-# or wait for the healthcheck states before starting the Python process.
-#
-# Memory limits
-# ─────────────
-# Tune these for your hardware.  The allocations below assume a 32 GB host:
-#   Qdrant  :  8 GB   (ColBERT 128-dim vectors — grows with document count)
-#   Postgres:  2 GB   (metadata only — rows are tiny)
-#   Redis   :  4 GB   (LightRAG KV chunks + LLM cache)
-#   Neo4j   :  8 GB   (KG heap + page cache)
-#
-# ════════════════════════════════════════════════════════════════════════════
+
 
 services:
-
-  # ── VECTOR DATABASE ───────────────────────────────────────────────────────
-  qdrant:
-    image: qdrant/qdrant:latest
-    container_name: qdrant_master_db
-    restart: unless-stopped
-    ports:
-      - "6333:6333"   # HTTP REST + gRPC
-      - "6334:6334"   # gRPC (direct)
-    volumes:
-      - qdrant_storage:/qdrant/storage
+  db:
+    image: pgvector/pgvector:pg16
     environment:
-      - QDRANT__SERVICE__MAX_REQUEST_SIZE_MB=50
-    deploy:
-      resources:
-        limits:
-          memory: 8G
+      POSTGRES_USER: atlas_user
+      POSTGRES_PASSWORD: atlas_password
+      POSTGRES_DB: atlas_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - atlas_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:6333/healthz"]
-      interval: 15s
+      test: ["CMD-SHELL", "pg_isready -U atlas_user -d atlas_db"]
+      interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 10s
 
-  # ── RELATIONAL SOURCE OF TRUTH ────────────────────────────────────────────
-  postgres:
-    image: postgres:16-alpine
-    container_name: omni_postgres
-    restart: unless-stopped
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
     environment:
-      POSTGRES_DB:       omni_architect
-      POSTGRES_USER:     omni
-      # ⚠  Replace this with a secret manager value in production.
-      # Never commit a real password to source control.
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-omni_secret_change_me}
-      # Tuning for a dedicated analytics / metadata workload
-      # (document registry rows are tiny; optimise for connection throughput)
-      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
-    command: >
-      postgres
-        -c max_connections=100
-        -c shared_buffers=256MB
-        -c effective_cache_size=1GB
-        -c maintenance_work_mem=128MB
-        -c checkpoint_completion_target=0.9
-        -c wal_buffers=16MB
-        -c default_statistics_target=100
-        -c random_page_cost=1.1
-        -c effective_io_concurrency=200
-        -c work_mem=4MB
-        -c min_wal_size=1GB
-        -c max_wal_size=4GB
-        -c log_min_duration_statement=1000
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U omni -d omni_architect"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
-  # ── DATABASE WEB UI ───────────────────────────────────────────────────────
-  adminer:
-    image: adminer:latest
-    container_name: omni_adminer
-    restart: unless-stopped
+      MINIO_ROOT_USER: minio_admin
+      MINIO_ROOT_PASSWORD: minio_password
+      # DEFENSIVE ARCHITECTURE: US-24 Server-Side Encryption (SSE-KMS)
+      # Format: <key-name>:<base64-encoded-32-byte-key>
+      MINIO_KMS_SECRET_KEY: "minio-encryption-key:N3VlcmEwdjFiejNkaXJ0YW1hZ2ljc3RyaW5nbW9yZXM="
     ports:
-      - "8080:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
-  # ── IN-MEMORY KV CACHE ────────────────────────────────────────────────────
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - atlas_minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # DEFENSIVE ARCHITECTURE: US-24 Antivirus Scanner
+  clamav:
+    image: clamav/clamav:latest
+    ports:
+      - "3310:3310"
+    restart: always
+    healthcheck:
+      test: ["CMD", "clamdscan", "--ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   redis:
-    image: redis:7-alpine
-    container_name: omni_redis
-    restart: unless-stopped
+    image: redis:7-alpine # Satisfies Redis 7 requirement
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
-    # Persistence: RDB snapshot every 60s if ≥1 key changed.
-    # Provides crash recovery without the overhead of AOF.
-    # Disable both (comment out `save`) for pure in-memory / ephemeral cache.
-    command: >
-      redis-server
-        --maxmemory 3gb
-        --maxmemory-policy allkeys-lru
-        --save 60 1
-        --appendonly no
-        --tcp-keepalive 60
-        --loglevel notice
-    deploy:
-      resources:
-        limits:
-          memory: 4G
+      - atlas_redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
+      interval: 5s
+      timeout: 5s
       retries: 5
-      start_period: 5s
 
-  # ── ENTERPRISE GRAPH DATABASE ─────────────────────────────────────────────
-  neo4j:
-    image: neo4j:5-community
-    container_name: omni_neo4j
-    restart: unless-stopped
-    ports:
-      - "7474:7474"   # HTTP Browser UI
-      - "7687:7687"   # Bolt protocol (Python driver)
-    volumes:
-      - neo4j_data:/data
-      - neo4j_logs:/logs
-      - neo4j_import:/var/lib/neo4j/import
-      - neo4j_plugins:/plugins
+  # US-09: MeiliSearch Full-Text & Typo-Tolerant Engine
+  meilisearch:
+    image: getmeili/meilisearch:v1.6
     environment:
-      # ⚠  Replace with secret manager value in production.
-      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-omni_neo4j_change_me}
-
-      # Memory configuration — must sum to less than the container memory limit.
-      # Heap:       JVM heap for Cypher query execution.
-      # PageCache:  On-disk graph data cached in memory — largest consumer.
-      NEO4J_server_memory_heap_initial__size: "1G"
-      NEO4J_server_memory_heap_max__size:     "2G"
-      NEO4J_server_memory_pagecache_size:     "4G"
-
-      # Enable APOC procedures (required for complex graph operations).
-      # Download the APOC jar matching your Neo4j version and place it in
-      # the neo4j_plugins volume, or use the automatic download below.
-      NEO4J_PLUGINS: '["apoc"]'
-      NEO4J_apoc_export_file_enabled: "true"
-      NEO4J_apoc_import_file_enabled: "true"
-      NEO4J_apoc_import_file_use__neo4j__config: "true"
-
-      # Security: restrict procedures callable without explicit allow-list
-      NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
-      NEO4J_dbms_security_procedures_allowlist:    "apoc.*"
-
-      # Enable Bolt (Python driver) and HTTP (browser UI)
-      NEO4J_server_bolt_enabled: "true"
-      NEO4J_server_http_enabled: "true"
-
-      # Transaction log retention — 2 days is enough for this workload
-      NEO4J_db_tx__log_rotation_retention__policy: "2 days"
-    deploy:
-      resources:
-        limits:
-          memory: 8G
+      MEILI_MASTER_KEY: meili_master_key
+      MEILI_ENV: development
+    ports:
+      - "7700:7700"
+    volumes:
+      - atlas_meili_data:/meili_data
     healthcheck:
-      test: >
-        ["CMD-SHELL",
-         "wget -O /dev/null -q http://localhost:7474 || exit 1"]
-      interval: 20s
-      timeout: 10s
-      retries: 10
-      start_period: 60s   # Neo4j JVM startup is slow — give it time
-
-
-# ════════════════════════════════════════════════════════════════════════════
-# NAMED VOLUMES
-# ════════════════════════════════════════════════════════════════════════════
-# All data persists across `docker-compose down` (but not `down -v`).
-# To reset a single service without losing others:
-#   docker volume rm omni_architect_postgres_data
-# ════════════════════════════════════════════════════════════════════════════
+      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:7700/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
-  qdrant_storage:
-    name: omni_architect_qdrant_storage
-
-  postgres_data:
-    name: omni_architect_postgres_data
-
-  redis_data:
-    name: omni_architect_redis_data
-
-  neo4j_data:
-    name: omni_architect_neo4j_data
-
-  neo4j_logs:
-    name: omni_architect_neo4j_logs
-
-  neo4j_import:
-    name: omni_architect_neo4j_import
-
-  neo4j_plugins:
-    name: omni_architect_neo4j_plugins
-
-
+  atlas_postgres_data:
+  atlas_minio_data:
+  atlas_redis_data:
+  atlas_meili_data:
