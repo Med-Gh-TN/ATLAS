@@ -14,7 +14,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:
         # bcrypt requires bytes for both the password and the hash
         return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, AttributeError):
         return False
 
 def get_password_hash(password: str) -> str:
