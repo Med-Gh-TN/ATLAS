@@ -2,7 +2,7 @@ import os
 import json
 import logging
 import asyncio
-from typing import AsyncGenerator, Dict, Any, List, Optional, Tuple
+from typing import AsyncGenerator, List, Optional, Tuple
 import httpx
 
 import chromadb
@@ -17,7 +17,6 @@ except ImportError:
     from langchain.text_splitters import RecursiveCharacterTextSplitter
 
 from app.models.all_models import DocumentVersion
-from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
