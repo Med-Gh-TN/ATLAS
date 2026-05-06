@@ -1,0 +1,284 @@
+/**
+ * @file frontend/src/app/globals.css
+ * @description Global Design Token Foundation.
+ *
+ *   Omni-Architect v3.0 — Student Interface Elevation
+ *   ═══════════════════════════════════════════════════════
+ *   Mathematical constraints:
+ *     Grid Systems (#1)     — modular grid: page-width / 8
+ *     Geometry of Design (#2) — golden ratio (1.618), √2 (1.414)
+ *     Apple HIG (#7)        — 8×N corner radii, material blur
+ *     RWD (#5)              — target / context = result fluid values
+ *     clamp() / CQ (#6)     — responsive type and spacing
+ *     Refactoring UI (#8)   — ≤3 functional colors
+ *
+ * @layer Design System — Core Logic
+ */
+
+@import "tailwindcss";
+@import "react-pdf/dist/Page/TextLayer.css";
+@import "react-pdf/dist/Page/AnnotationLayer.css";
+@import "@xyflow/react/dist/style.css";
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CSS CUSTOM PROPERTIES — Design Token Layer
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@layer base {
+  :root {
+    /* ── Grid System (Resource #1: Grid Systems in Graphic Design) ──
+       Base unit derived from 1440px ideal page width / 32 columns = 45px.
+       We expose a normalized 4px sub-unit for Tailwind compatibility. */
+    --grid-unit: 4px;
+    --grid-2:  calc(var(--grid-unit) * 2);   /* 8px  */
+    --grid-3:  calc(var(--grid-unit) * 3);   /* 12px */
+    --grid-4:  calc(var(--grid-unit) * 4);   /* 16px */
+    --grid-6:  calc(var(--grid-unit) * 6);   /* 24px */
+    --grid-8:  calc(var(--grid-unit) * 8);   /* 32px */
+    --grid-12: calc(var(--grid-unit) * 12);  /* 48px */
+    --grid-16: calc(var(--grid-unit) * 16);  /* 64px */
+
+    /* ── Irrational Proportions (Resource #2: Geometry of Design) ── */
+    --golden-ratio: 1.618;
+    --ratio-sqrt2:  1.414;
+
+    /* ── Typography Scale — clamp() powered (Resource #6: MDN clamp) ──
+       Syntax: clamp(MIN, PREFERRED, MAX)
+       PREFERRED uses viewport width for fluid scaling between breakpoints. */
+    --text-xs:   clamp(0.6875rem, 0.65rem + 0.2vw, 0.75rem);
+    --text-sm:   clamp(0.75rem,  0.7rem  + 0.3vw, 0.875rem);
+    --text-base: clamp(0.875rem, 0.8rem  + 0.5vw, 1.05rem);
+    --text-lg:   clamp(1rem,     0.9rem  + 0.6vw, 1.25rem);
+    --text-xl:   clamp(1.125rem, 1rem    + 0.8vw, 1.5rem);
+    --text-2xl:  clamp(1.25rem,  1.1rem  + 1.0vw, 1.75rem);
+    --text-3xl:  clamp(1.5rem,   1.3rem  + 1.4vw, 2.25rem);
+    --text-4xl:  clamp(1.75rem,  1.5rem  + 2.0vw, 3rem);
+
+    /* Line heights tuned for readability on Arabic/Latin glyphs */
+    --leading-tight:   1.25;
+    --leading-normal:  1.5;
+    --leading-relaxed: 1.75;
+
+    /* ── Spacing Scale — derived from --grid-unit (Resource #1) ── */
+    --space-0:  0;
+    --space-1:  var(--grid-unit);               /* 4px  */
+    --space-2:  var(--grid-2);                  /* 8px  */
+    --space-3:  calc(var(--grid-unit) * 3);     /* 12px */
+    --space-4:  var(--grid-4);                  /* 16px */
+    --space-5:  calc(var(--grid-unit) * 5);     /* 20px */
+    --space-6:  var(--grid-6);                  /* 24px */
+    --space-8:  var(--grid-8);                  /* 32px */
+    --space-10: calc(var(--grid-unit) * 10);    /* 40px */
+    --space-12: var(--grid-12);                 /* 48px */
+    --space-16: var(--grid-16);                 /* 64px */
+
+    /* ── Corner Radii — 8×N points (Resource #7: Apple HIG) ── */
+    --radius-sm:  8px;    /* 8 × 1 */
+    --radius-md:  16px;   /* 8 × 2 */
+    --radius-lg:  24px;   /* 8 × 3 */
+    --radius-xl:  32px;   /* 8 × 4 */
+    --radius-full: 9999px;
+
+    /* ── Material Depth (Resource #7: Apple HIG) ── */
+    --blur-material: 12px;
+    --blur-heavy:    24px;
+
+    /* ── Shadows — layered for depth hierarchy ── */
+    --shadow-sm:  0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md:  0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    --shadow-lg:  0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+    --shadow-xl:  0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.05);
+
+    /* ── Transition Tokens ── */
+    --transition-fast:   150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow:   350ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* ═══════════════════════════════════════════════════════════
+       RESTRICTED COLOR PALETTE (Resource #8: Refactoring UI)
+       ≤ 3 functional colors + neutrals. All values are HSL triplets
+       compatible with `hsl(var(--variable))`.
+       ═══════════════════════════════════════════════════════════ */
+
+    /* ── Neutral scale (Slate family — backgrounds, surfaces, text) ── */
+    --neutral-0:   210 40% 98%;    /* slate-50  lightest */
+    --neutral-100: 210 40% 96%;    /* slate-100 */
+    --neutral-200: 214 32% 91%;    /* slate-200 */
+    --neutral-300: 213 27% 84%;    /* slate-300 */
+    --neutral-400: 215 20% 65%;    /* slate-400 */
+    --neutral-500: 215 16% 47%;    /* slate-500 */
+    --neutral-600: 215 19% 35%;    /* slate-600 */
+    --neutral-700: 215 25% 27%;    /* slate-700 */
+    --neutral-800: 217 33% 17%;    /* slate-800 */
+    --neutral-900: 222 47% 11%;    /* slate-900 */
+    --neutral-950: 229 84%  5%;    /* slate-950 darkest */
+
+    /* ── Primary accent (Ocean) — used for primary actions ── */
+    --accent-primary:       194 100% 27%;    /* #006989 */
+    --accent-primary-light: 194  73% 57%;    /* #42BBE0 */
+    --accent-primary-dark:  194 100% 18%;
+
+    /* ── Semantic feedback (2 colors only: success + danger) ── */
+    --feedback-success: 142 76% 36%;
+    --feedback-danger:    0 84% 60%;
+
+    /* ═══════════════════════════════════════════════════════════
+       THEME ASSIGNMENTS
+       ═══════════════════════════════════════════════════════════ */
+
+    /* Light Theme — "Dreamy Paper" */
+    --background:          var(--neutral-100);
+    --foreground:          var(--neutral-900);
+
+    --card:                var(--neutral-0);
+    --card-foreground:     var(--neutral-900);
+
+    --primary:             var(--accent-primary);
+    --primary-foreground:  var(--neutral-0);
+
+    --muted:               var(--neutral-200);
+    --muted-foreground:    var(--neutral-500);
+
+    --accent:              194 100% 27% / 0.1;
+    --accent-foreground:   var(--accent-primary);
+
+    --border:              var(--neutral-200);
+    --ring:                var(--accent-primary);
+
+    --radius: var(--radius-md);
+  }
+
+  .dark {
+    /* Dark Theme — "Abyssal Night" */
+    --background:          var(--neutral-950);
+    --foreground:          var(--neutral-100);
+
+    --card:                var(--neutral-900);
+    --card-foreground:     var(--neutral-100);
+
+    --primary:             var(--accent-primary-light);
+    --primary-foreground:  var(--neutral-950);
+
+    --muted:               var(--neutral-800);
+    --muted-foreground:    var(--neutral-400);
+
+    --accent:              194 73% 57% / 0.15;
+    --accent-foreground:   var(--accent-primary-light);
+
+    --border:              var(--neutral-800);
+    --ring:                var(--accent-primary-light);
+  }
+
+  /* ── Global Box-Sizing & Border Reset ── */
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    transition: background-color var(--transition-normal),
+                color var(--transition-normal);
+    font-size: var(--text-base);
+    line-height: var(--leading-normal);
+  }
+
+  /* ── Arabic Font Stack (preserved) ── */
+  [lang="ar"] {
+    font-family: var(--font-arabic), ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TAILWIND v4 @theme — maps custom properties into utility classes
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@theme {
+  /* Typography */
+  --font-sans:  "Inter", "Google Sans Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono:  var(--font-mono), "IBM Plex Mono", "Roboto Mono", monospace;
+  --font-arabic: "Noto Naskh Arabic", "IBM Plex Sans Arabic", system-ui, sans-serif;
+
+  --font-size-xs:   var(--text-xs);
+  --font-size-sm:   var(--text-sm);
+  --font-size-base: var(--text-base);
+  --font-size-lg:   var(--text-lg);
+  --font-size-xl:   var(--text-xl);
+  --font-size-2xl:  var(--text-2xl);
+  --font-size-3xl:  var(--text-3xl);
+  --font-size-4xl:  var(--text-4xl);
+
+  /* Spacing mapped to grid */
+  --spacing: 0.25rem;  /* 1 unit = 4px */
+
+  /* Colors */
+  --color-background:          hsl(var(--background));
+  --color-foreground:          hsl(var(--foreground));
+  --color-primary:             hsl(var(--primary));
+  --color-primary-foreground:  hsl(var(--primary-foreground));
+  --color-muted:               hsl(var(--muted));
+  --color-muted-foreground:    hsl(var(--muted-foreground));
+  --color-accent:              hsl(var(--accent));
+  --color-accent-foreground:   hsl(var(--accent-foreground));
+  --color-border:              hsl(var(--border));
+  --color-ring:                hsl(var(--ring));
+  --color-card:                hsl(var(--card));
+  --color-card-foreground:     hsl(var(--card-foreground));
+
+  /* Semantic feedback */
+  --color-success:             hsl(var(--feedback-success));
+  --color-destructive:         hsl(var(--feedback-danger));
+
+  /* Border radius */
+  --radius-sm:   var(--radius-sm);
+  --radius-md:   var(--radius-md);
+  --radius-lg:   var(--radius-lg);
+  --radius-xl:   var(--radius-xl);
+  --radius-full: var(--radius-full);
+
+  /* Shadows */
+  --shadow-sm:  var(--shadow-sm);
+  --shadow-md:  var(--shadow-md);
+  --shadow-lg:  var(--shadow-lg);
+  --shadow-xl:  var(--shadow-xl);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONTAINER QUERY — Card / Component Self-Responsive (Resource #6)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@layer base {
+  /* Define a containment context on every card-like element */
+  .card-container,
+  [data-container-query] {
+    container-type: inline-size;
+    container-name: card;
+  }
+
+  /* Example: adjust font size based on container width */
+  @container card (max-width: 320px) {
+    .card-responsive-title {
+      font-size: var(--text-sm);
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UTILITY LAYER — Backdrop blur helpers (Resource #7: Apple HIG)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@layer utilities {
+  .glass-material {
+    background-color: hsl(var(--card) / 0.7);
+    backdrop-filter: blur(var(--blur-material));
+    -webkit-backdrop-filter: blur(var(--blur-material));
+    border: 1px solid hsl(var(--border) / 0.5);
+  }
+
+  .glass-heavy {
+    background-color: hsl(var(--card) / 0.4);
+    backdrop-filter: blur(var(--blur-heavy));
+    -webkit-backdrop-filter: blur(var(--blur-heavy));
+    border: 1px solid hsl(var(--border) / 0.3);
+  }
+}

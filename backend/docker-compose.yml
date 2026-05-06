@@ -1,0 +1,45 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: backend/docker/api.Dockerfile
+      network: host
+    environment:
+      DATABASE_URL: postgresql+asyncpg://atlas_user:atlas_password@db:5432/atlas_db
+      REDIS_URL: redis://redis:6379/0
+      REDIS_CACHE_URL: redis://redis:6379/1
+      SECRET_KEY: change-me
+      QDRANT_URL: http://qdrant:6333
+      FRONTEND_ORIGIN: http://localhost:3000
+      FRONTEND_ORIGIN_ROOT: https://atlas.tn
+      FRONTEND_ORIGIN_WWW: https://www.atlas.tn
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+      - qdrant
+    volumes:
+      - atlas_omni_workspace:/omni/workspace
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: atlas_user
+      POSTGRES_PASSWORD: atlas_password
+      POSTGRES_DB: atlas_db
+    ports:
+      - "5433:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+
+volumes:
+  atlas_omni_workspace:

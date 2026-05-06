@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Research Console · Omni-Architect SOTA</title>
+
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        void:    { DEFAULT: '#ffffff', 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1', 400: '#94a3b8', 500: '#64748b' },
+                        plasma:  { DEFAULT: '#0284c7', dim: '#0369a1', glow: 'rgba(2,132,199,0.15)', soft: 'rgba(2,132,199,0.06)' },
+                        lattice: { DEFAULT: '#16a34a', dim: '#15803d', glow: 'rgba(22,163,74,0.15)' },
+                        amber:   { heat: '#ea580c', glow: 'rgba(234,88,12,0.15)' },
+                        crimson: { heat: '#dc2626', glow: 'rgba(220,38,38,0.15)' },
+                        chrome:  { DEFAULT: '#475569', light: '#334155', faint: '#94a3b8' },
+                    },
+                    fontFamily: {
+                        mono: ['"IBM Plex Mono"', 'monospace'],
+                        sans: ['"IBM Plex Sans"', 'sans-serif'],
+                    },
+                    animation: {
+                        'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
+                        'slide-up': 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'fade-in': 'fadeIn 0.25s ease-out forwards',
+                        'scan': 'scan 3s linear infinite',
+                        'flicker': 'flicker 4s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        slideUp: { from: { opacity: 0, transform: 'translateY(12px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
+                        fadeIn:  { from: { opacity: 0 }, to: { opacity: 1 } },
+                        scan:    { '0%': { backgroundPosition: '0% -100%' }, '100%': { backgroundPosition: '0% 200%' } },
+                        flicker: { '0%,100%': { opacity: 1 }, '92%': { opacity: 1 }, '93%': { opacity: 0.4 }, '94%': { opacity: 1 }, '96%': { opacity: 0.6 }, '97%': { opacity: 1 } },
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body { height: 100%; overflow: hidden; }
+        body { background: #ffffff; color: #334155; font-family: 'IBM Plex Sans', sans-serif; }
+
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(2,132,199,0.02) 2px, rgba(2,132,199,0.02) 4px);
+            pointer-events: none; z-index: 0;
+        }
+
+        .col-border-left  { border-left:  1px solid #e2e8f0; }
+        .col-border-right { border-right: 1px solid #e2e8f0; }
+
+        .panel-label {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 9px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: #64748b;
+        }
+
+        .plasma-ring:focus-within {
+            box-shadow: 0 0 0 1px #0284c733, 0 0 20px #0284c715;
+            border-color: #0284c7 !important;
+        }
+
+        .bubble-ai {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 2px 12px 12px 12px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .bubble-user {
+            background: linear-gradient(135deg, #0284c70a, #ffffff);
+            border: 1px solid #0284c733;
+            border-radius: 12px 2px 12px 12px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        }
+
+        .prose { color: #334155; max-width: 100%; font-size: 13.5px; line-height: 1.75; }
+        .prose p { margin: 0.6em 0; }
+        .prose h1,.prose h2,.prose h3 { color: #0f172a; font-family: 'IBM Plex Mono', monospace; font-weight: 600; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em; font-size: 1.1em; }
+        .prose code { color: #0284c7; background: #0284c70d; padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.85em; font-family: 'IBM Plex Mono', monospace; border: 1px solid #0284c71a; }
+        .prose pre { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 1em; }
+        .prose pre code { background: none; border: none; color: #16a34a; }
+        .prose strong { color: #0f172a; font-weight: 600; }
+        .prose ul,.prose ol { padding-left: 1.4em; }
+        .prose table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+        .prose th { background: #f1f5f9; color: #475569; font-family: 'IBM Plex Mono', monospace; font-weight: 500; padding: 0.5em 0.75em; border: 1px solid #cbd5e1; }
+        .prose td { padding: 0.5em 0.75em; border: 1px solid #cbd5e1; }
+        .prose a { color: #0284c7; text-decoration: none; }
+
+        .typing-caret::after { content: '▋'; animation: blink 0.9s step-start infinite; color: #0284c788; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .chunk-card { border-left: 2px solid #cbd5e1; transition: all 0.2s ease; background: #ffffff; }
+        .chunk-card.active { border-left-color: #0284c7; background: #0284c708; }
+
+        .src-ref { border-bottom: 1px dashed #0284c755; cursor: pointer; transition: background 0.2s; }
+        .src-ref:hover, .src-ref.lit { background: #0284c715; border-bottom-color: #0284c7; }
+
+        .metric-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px 14px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        }
+        .metric-value { font-family: 'IBM Plex Mono', monospace; color: #0f172a; font-size: 18px; font-weight: 500; }
+        .metric-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: #64748b; margin-top: 2px; }
+
+        .log-row { border-left: 2px solid transparent; padding: 5px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; line-height: 1.6; animation: fadeIn 0.2s ease-out; transition: background 0.15s; }
+        .log-row:hover { background: #f8fafc; }
+        .log-row.INFO    { border-left-color: #0284c7; }
+        .log-row.WARN    { border-left-color: #ea580c; }
+        .log-row.ERROR   { border-left-color: #dc2626; }
+        .log-row.SUCCESS { border-left-color: #16a34a; }
+        .log-row.DEBUG   { border-left-color: #94a3b8; }
+        .log-row.TRACE   { border-left-color: #cbd5e1; }
+
+        @keyframes pulse-plasma { 0%,100%{box-shadow:0 0 0 0 rgba(2,132,199,0.2)} 50%{box-shadow:0 0 0 5px transparent} }
+        .status-live { animation: pulse-plasma 2s ease-in-out infinite; }
+
+        .drag-over { border-color: #0284c7 !important; background: #0284c708 !important; }
+
+        .latency-good   { color: #16a34a; }
+        .latency-medium { color: #ea580c; }
+        .latency-slow   { color: #dc2626; }
+
+        /* Modal specific styles */
+        .modal-visible { opacity: 1 !important; transform: scale(1) !important; }
+        .tab-active { background-color: rgba(2, 132, 199, 0.1); color: #0284c7; box-shadow: inset 0 0 0 1px rgba(2, 132, 199, 0.2); }
+        .tab-inactive { color: #64748b; }
+        .tab-inactive:hover { background-color: #f1f5f9; color: #334155; }
+    </style>
+</head>
+<body class="relative z-10">
+
+<div class="flex h-screen w-screen overflow-hidden relative z-10">
+
+    <aside id="ragPanel" class="w-72 min-w-[220px] flex flex-col h-full col-border-right bg-void-50 shrink-0 shadow-sm z-20">
+
+        <div class="h-12 flex items-center justify-between px-4 border-b border-void-200 shrink-0 bg-white">
+            <div class="flex items-center gap-2">
+                <i data-lucide="database" class="w-3.5 h-3.5 text-plasma-DEFAULT opacity-80"></i>
+                <span class="panel-label">RAG Retrieval</span>
+            </div>
+            <div id="ragBadge" class="px-1.5 py-0.5 rounded font-mono text-[9px] bg-void-100 text-chrome-DEFAULT border border-void-200">
+                0 chunks
+            </div>
+        </div>
+
+        <div class="px-4 pt-3 pb-2 border-b border-void-200 shrink-0 space-y-2 bg-white">
+            <div class="flex items-center justify-between">
+                <span class="panel-label">Query Vector</span>
+                <span id="queryVecStatus" class="font-mono text-[9px] text-chrome-faint">—</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="panel-label">Top-K</span>
+                <span id="topKDisplay" class="font-mono text-[9px] text-chrome-DEFAULT">—</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="panel-label">Retrieval Latency</span>
+                <span id="retrievalLatency" class="font-mono text-[9px] text-chrome-DEFAULT">—</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="panel-label">Index Size</span>
+                <span id="indexSizeDisplay" class="font-mono text-[9px] text-chrome-DEFAULT">—</span>
+            </div>
+        </div>
+
+        <div id="chunkList" class="flex-1 overflow-y-auto p-3 space-y-2">
+            <div class="text-center py-8">
+                <i data-lucide="file-search" class="w-8 h-8 text-void-300 mx-auto mb-2"></i>
+                <p class="font-mono text-[10px] text-chrome-faint">No chunks retrieved yet</p>
+            </div>
+        </div>
+
+        <div class="p-3 border-t border-void-200 shrink-0 bg-white">
+            <div id="dropZone"
+                 onclick="document.getElementById('fileInput').click()"
+                 class="group relative border border-dashed border-void-300 bg-void-50 rounded-md p-3 text-center cursor-pointer transition-all duration-200 hover:border-plasma-dim hover:bg-plasma-soft">
+                <input type="file" id="fileInput" accept=".pdf" class="hidden">
+                <i data-lucide="upload-cloud" class="w-4 h-4 text-chrome-faint group-hover:text-plasma-DEFAULT mx-auto mb-1 transition-colors"></i>
+                <p class="font-mono text-[9px] text-chrome-faint group-hover:text-plasma-dim transition-colors">Drop PDF to index</p>
+            </div>
+            <div id="uploadProgress" class="mt-2 hidden">
+                <div class="flex justify-between mb-1">
+                    <span class="font-mono text-[9px] text-chrome-faint">Indexing...</span>
+                    <span id="uploadPct" class="font-mono text-[9px] text-plasma-DEFAULT">0%</span>
+                </div>
+                <div class="h-1 bg-void-200 rounded-full overflow-hidden">
+                    <div id="uploadBar" class="h-full bg-plasma-DEFAULT rounded-full transition-all duration-300" style="width:0%"></div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-full overflow-hidden relative bg-void-DEFAULT">
+
+        <header class="h-12 flex items-center px-6 border-b border-void-200 shrink-0 bg-white/80 backdrop-blur-sm z-20">
+            <div class="flex items-center gap-3 w-full">
+
+                <div class="flex items-center gap-2">
+                    <div id="statusDot" class="w-2 h-2 rounded-full bg-crimson-heat transition-all duration-500"></div>
+                    <span id="statusLabel" class="font-mono text-[10px] text-chrome-faint">DISCONNECTED</span>
+                </div>
+
+                <div class="h-4 w-px bg-void-200 mx-1"></div>
+
+                <div class="flex items-center gap-2">
+                    <i data-lucide="folder-search" class="w-3.5 h-3.5 text-plasma-DEFAULT opacity-80"></i>
+                    <select id="docSelector" onchange="APP.onDocumentChange(event)" 
+                            class="bg-void-50 border border-void-200 text-chrome-DEFAULT font-mono text-[10px] rounded px-2 py-1 outline-none focus:border-plasma-DEFAULT max-w-[200px] truncate cursor-pointer transition-colors hover:bg-void-100">
+                        <option value="global">Global Vault (All Documents)</option>
+                    </select>
+                </div>
+
+                <div class="h-4 w-px bg-void-200 mx-1"></div>
+
+                <div class="flex items-center gap-1.5 px-2 py-1 rounded bg-void-50 border border-void-200">
+                    <i data-lucide="workflow" class="w-3 h-3 text-lattice-DEFAULT opacity-80"></i>
+                    <span class="font-mono text-[10px] text-chrome-DEFAULT">Hybrid RAG v6.4.1</span>
+                </div>
+
+                <div class="ml-auto flex items-center gap-3">
+                    <div class="flex items-center gap-2">
+                        <span class="panel-label">CTX</span>
+                        <div class="w-24 h-1.5 bg-void-200 rounded-full overflow-hidden">
+                            <div id="ctxBar" class="h-full bg-plasma-DEFAULT rounded-full transition-all duration-500" style="width:0%"></div>
+                        </div>
+                        <span id="ctxLabel" class="font-mono text-[9px] text-chrome-faint">0 / 32k</span>
+                    </div>
+
+                    <button id="clearBtn" onclick="APP.clearChat()"
+                        class="p-1.5 rounded hover:bg-void-100 transition-colors" title="Clear conversation">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5 text-chrome-faint hover:text-crimson-heat"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div id="activeDocBanner" class="hidden shrink-0 bg-plasma-soft border-b border-plasma-DEFAULT/20 px-6 py-2.5 items-center gap-2 z-10 transition-all duration-300">
+            <i data-lucide="book-open" class="w-4 h-4 text-plasma-DEFAULT"></i>
+            <span class="font-mono text-xs font-semibold text-plasma-dim">ISOLATED CONTEXT:</span>
+            <span id="activeDocName" class="font-sans text-sm font-medium text-chrome-light tracking-wide truncate"></span>
+        </div>
+
+        <div id="studyToolbar" class="hidden shrink-0 bg-white/90 backdrop-blur-md border-b border-void-200 px-6 py-3 items-center gap-4 z-10 transition-all duration-300 shadow-sm">
+            <span class="font-mono text-[10px] font-semibold text-chrome-faint uppercase tracking-widest">Study Tools</span>
+            <div class="h-4 w-px bg-void-200"></div>
+            <button id="asset-btn-flashcards" onclick="ASSETS.open('flashcards')" class="relative flex items-center gap-2 px-3 py-1.5 rounded bg-void-50 hover:bg-void-100 border border-void-200 transition-all text-sm font-medium text-chrome-DEFAULT">
+                <i data-lucide="layers" class="w-4 h-4 text-plasma-DEFAULT"></i> Flashcards
+                <div class="cache-badge absolute -top-1 -right-1 w-2 h-2 rounded-full bg-transparent"></div>
+            </button>
+            <button id="asset-btn-mindmap" onclick="ASSETS.open('mindmap')" class="relative flex items-center gap-2 px-3 py-1.5 rounded bg-void-50 hover:bg-void-100 border border-void-200 transition-all text-sm font-medium text-chrome-DEFAULT">
+                <i data-lucide="network" class="w-4 h-4 text-plasma-DEFAULT"></i> Mindmap
+                <div class="cache-badge absolute -top-1 -right-1 w-2 h-2 rounded-full bg-transparent"></div>
+            </button>
+            <button id="asset-btn-exam" onclick="ASSETS.open('exam')" class="relative flex items-center gap-2 px-3 py-1.5 rounded bg-void-50 hover:bg-void-100 border border-void-200 transition-all text-sm font-medium text-chrome-DEFAULT">
+                <i data-lucide="file-check-2" class="w-4 h-4 text-plasma-DEFAULT"></i> Exam
+                <div class="cache-badge absolute -top-1 -right-1 w-2 h-2 rounded-full bg-transparent"></div>
+            </button>
+            <button id="asset-btn-summary" onclick="ASSETS.open('summary')" class="relative flex items-center gap-2 px-3 py-1.5 rounded bg-void-50 hover:bg-void-100 border border-void-200 transition-all text-sm font-medium text-chrome-DEFAULT">
+                <i data-lucide="file-text" class="w-4 h-4 text-plasma-DEFAULT"></i> Résumé
+                <div class="cache-badge absolute -top-1 -right-1 w-2 h-2 rounded-full bg-transparent"></div>
+            </button>
+        </div>
+
+        <div id="chatScroll" class="flex-1 overflow-y-auto px-6 py-5 space-y-5 z-0">
+            <div id="chatInner" class="max-w-3xl mx-auto space-y-5 pb-32">
+
+                <div class="flex gap-3 animate-slide-up">
+                    <div class="w-6 h-6 rounded bg-plasma-glow border border-plasma-DEFAULT/20 flex items-center justify-center shrink-0 mt-0.5">
+                        <i data-lucide="bot" class="w-3.5 h-3.5 text-plasma-DEFAULT"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1.5">
+                            <span class="font-mono text-[10px] text-plasma-dim font-medium">SYSTEM</span>
+                            <span class="font-mono text-[9px] text-chrome-faint" id="bootTime">—</span>
+                        </div>
+                        <div class="bubble-ai px-5 py-4 text-sm text-chrome-light typing-caret" id="bootMsg">
+                            Initialising RAG research console...
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="absolute bottom-0 left-0 right-0 px-6 pb-5 pt-12 bg-gradient-to-t from-white via-white/95 to-transparent z-20 pointer-events-none">
+            <div class="max-w-3xl mx-auto pointer-events-auto">
+
+                <div class="flex items-center justify-between mb-2 px-1">
+                    <div class="flex items-center gap-3">
+                        <span id="inputTokenEst" class="font-mono text-[9px] text-chrome-faint">~0 tokens</span>
+                        <span id="ragContextIndicator" class="font-mono text-[9px] text-chrome-faint hidden">
+                            + <span id="ragTokenCount">0</span> ctx tokens
+                        </span>
+                    </div>
+                    <div id="streamingIndicator" class="hidden items-center gap-1.5">
+                        <div class="w-1 h-1 rounded-full bg-plasma-DEFAULT animate-ping-slow"></div>
+                        <span class="font-mono text-[9px] text-plasma-dim">streaming</span>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 plasma-ring rounded-lg border border-void-300 bg-void-50 transition-all duration-200 focus-within:border-plasma-DEFAULT focus-within:bg-white shadow-sm">
+                    <textarea id="queryInput"
+                        rows="1"
+                        placeholder="Query the research vault..."
+                        class="flex-1 bg-transparent text-chrome-light text-sm px-4 py-3 focus:outline-none resize-none placeholder:text-chrome-faint font-sans leading-relaxed min-h-[46px] max-h-32 overflow-y-auto"
+                        oninput="APP.onInputChange(this)"
+                        onkeydown="APP.onInputKeydown(event)"></textarea>
+                    <div class="flex flex-col justify-end p-1.5 gap-1">
+                        <button id="sendBtn" onclick="APP.sendQuery()" disabled
+                            class="px-3 py-2 rounded bg-plasma-DEFAULT/10 border border-plasma-DEFAULT/20 font-mono text-[10px] font-medium text-plasma-dim hover:bg-plasma-DEFAULT/20 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 whitespace-nowrap">
+                            <i data-lucide="send" class="w-3 h-3"></i>
+                            <span id="sendLabel">Execute</span>
+                        </button>
+                    </div>
+                </div>
+                <p class="text-center font-mono text-[9px] text-void-400 mt-2">Enter to send · Shift+Enter for newline</p>
+            </div>
+        </div>
+    </main>
+
+    <aside class="w-72 min-w-[220px] flex flex-col h-full col-border-left bg-void-50 shrink-0 shadow-sm z-20">
+
+        <div class="h-12 flex items-center justify-between px-4 border-b border-void-200 shrink-0 bg-white">
+            <div class="flex items-center gap-2">
+                <i data-lucide="activity" class="w-3.5 h-3.5 text-lattice-DEFAULT opacity-80"></i>
+                <span class="panel-label">OpenInference Telemetry</span>
+            </div>
+            <div class="flex items-center gap-1">
+                <div class="w-1.5 h-1.5 rounded-full bg-void-300 animate-pulse" style="animation-delay:0s"></div>
+                <div class="w-1.5 h-1.5 rounded-full bg-void-300 animate-pulse" style="animation-delay:0.3s"></div>
+                <div class="w-1.5 h-1.5 rounded-full bg-void-300 animate-pulse" style="animation-delay:0.6s"></div>
+            </div>
+        </div>
+
+        <div class="px-3 pt-3 pb-2 border-b border-void-200 shrink-0 grid grid-cols-2 gap-2 bg-white">
+
+            <div class="metric-card">
+                <div class="metric-value" id="m-prompt-tokens">—</div>
+                <div class="metric-label">Prompt Tokens</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="m-completion-tokens">—</div>
+                <div class="metric-label">Completion Tokens</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="m-ttft">—</div>
+                <div class="metric-label">TTFT (ms)</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="m-total-latency">—</div>
+                <div class="metric-label">Total Latency</div>
+            </div>
+            <div class="metric-card col-span-2">
+                <div class="flex items-end justify-between">
+                    <div>
+                        <div class="metric-value text-base" id="m-total-cost">—</div>
+                        <div class="metric-label">Est. Cost (USD)</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-mono text-[11px] text-chrome-DEFAULT" id="m-throughput">— tok/s</div>
+                        <div class="metric-label">Throughput</div>
+                    </div>
+                </div>
+                <div class="mt-2 h-1 bg-void-200 rounded-full overflow-hidden border border-void-300">
+                    <div id="tokenRatioBar" class="h-full bg-plasma-DEFAULT rounded-full transition-all" style="width:0%"></div>
+                </div>
+                <div class="flex justify-between mt-0.5">
+                    <span class="font-mono text-[8px] text-chrome-faint">prompt</span>
+                    <span class="font-mono text-[8px] text-chrome-faint">completion</span>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="px-3 pt-2 pb-2 border-b border-void-200 shrink-0 bg-white">
+            <div class="panel-label mb-2">Last Trace · Span Breakdown</div>
+            <div id="spanTrace" class="space-y-1.5">
+                <div class="font-mono text-[9px] text-chrome-faint">No trace yet</div>
+            </div>
+        </div>
+
+        <div class="px-3 pt-2 pb-2 border-b border-void-200 shrink-0 bg-void-50">
+            <div class="panel-label mb-2">Session Cumulative</div>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                <div class="flex justify-between"><span class="panel-label">Queries</span><span class="font-mono text-[10px] text-chrome-DEFAULT" id="s-queries">0</span></div>
+                <div class="flex justify-between"><span class="panel-label">Total Tokens</span><span class="font-mono text-[10px] text-chrome-DEFAULT" id="s-total-tokens">0</span></div>
+                <div class="flex justify-between"><span class="panel-label">Avg Latency</span><span class="font-mono text-[10px] text-chrome-DEFAULT" id="s-avg-latency">—</span></div>
+                <div class="flex justify-between"><span class="panel-label">Total Cost</span><span class="font-mono text-[10px] text-chrome-DEFAULT" id="s-total-cost">$0.000000</span></div>
+                <div class="flex justify-between"><span class="panel-label">Documents</span><span class="font-mono text-[10px] text-chrome-DEFAULT" id="s-docs">0</span></div>
+                <div class="flex justify-between"><span class="panel-label">Avg TTFT</span><span class="font-mono text-[10px] text-chrome-DEFAULT" id="s-avg-ttft">—</span></div>
+                <div class="flex justify-between col-span-2"><span class="panel-label">Uptime</span><span class="font-mono text-[10px] text-chrome-DEFAULT" id="s-uptime">00:00:00</span></div>
+            </div>
+        </div>
+
+        <div class="px-3 pt-2 pb-1 shrink-0 flex items-center justify-between bg-void-50">
+            <span class="panel-label">Live Log Stream</span>
+            <button onclick="APP.clearLogs()"
+                class="font-mono text-[8px] text-chrome-faint hover:text-crimson-heat transition-colors">CLEAR</button>
+        </div>
+        <div id="logContainer" class="flex-1 overflow-y-auto pb-2 space-y-px bg-white border-t border-void-200 p-2">
+            </div>
+
+    </aside>
+</div>
+
+<div id="assetModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm items-center justify-center p-4 md:p-6 transition-opacity duration-300">
+    <div class="asset-modal-inner w-full max-w-4xl max-h-[90vh] bg-white rounded-2xl shadow-2xl border border-void-200 flex flex-col overflow-hidden transform scale-95 opacity-0 transition-all duration-300">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-void-200 bg-void-50/50">
+            <div class="flex items-center gap-6">
+                <h2 class="font-sans font-semibold text-chrome-light text-lg flex items-center gap-2">
+                    <i data-lucide="graduation-cap" class="w-5 h-5 text-plasma-DEFAULT"></i> Academic Hub
+                </h2>
+                <div class="h-6 w-px bg-void-200"></div>
+                <div class="flex items-center gap-2">
+                    <button id="tab-flashcards" onclick="ASSETS.switchTab('flashcards')" class="tab-inactive px-3 py-1.5 rounded-lg font-medium text-sm transition-all">Flashcards</button>
+                    <button id="tab-mindmap" onclick="ASSETS.switchTab('mindmap')" class="tab-inactive px-3 py-1.5 rounded-lg font-medium text-sm transition-all">Mindmap</button>
+                    <button id="tab-exam" onclick="ASSETS.switchTab('exam')" class="tab-inactive px-3 py-1.5 rounded-lg font-medium text-sm transition-all">Exam</button>
+                    <button id="tab-summary" onclick="ASSETS.switchTab('summary')" class="tab-inactive px-3 py-1.5 rounded-lg font-medium text-sm transition-all">Résumé</button>
+                </div>
+            </div>
+            <button onclick="ASSETS.close()" class="p-2 rounded-full hover:bg-void-200 text-chrome-faint hover:text-chrome-DEFAULT transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div id="assetError" class="hidden mx-6 mt-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm font-medium flex items-center gap-2 animate-slide-up"></div>
+
+        <div class="flex-1 overflow-y-auto p-6 relative bg-void-50/30">
+            <div id="panel-flashcards" class="hidden h-full flex-col">
+                <div class="asset-loader hidden flex-col items-center justify-center h-64 text-plasma-dim">
+                    <i data-lucide="loader-2" class="w-8 h-8 animate-spin mb-3"></i>
+                    <p class="font-mono text-xs animate-pulse">Synthesizing flashcards...</p>
+                </div>
+                <div class="asset-content"></div>
+            </div>
+
+            <div id="panel-mindmap" class="hidden h-full flex-col">
+                <div class="asset-loader hidden flex-col items-center justify-center h-64 text-plasma-dim">
+                    <i data-lucide="loader-2" class="w-8 h-8 animate-spin mb-3"></i>
+                    <p class="font-mono text-xs animate-pulse">Mapping knowledge graph...</p>
+                </div>
+                <div class="asset-content"></div>
+            </div>
+
+            <div id="panel-exam" class="hidden h-full flex-col">
+                <div class="asset-loader hidden flex-col items-center justify-center h-64 text-plasma-dim">
+                    <i data-lucide="loader-2" class="w-8 h-8 animate-spin mb-3"></i>
+                    <p class="font-mono text-xs animate-pulse">Generating examination...</p>
+                </div>
+                <div class="asset-content"></div>
+            </div>
+            <div id="panel-summary" class="hidden h-full flex-col">
+                <div class="asset-loader hidden flex-col items-center justify-center h-64 text-plasma-dim">
+                    <i data-lucide="loader-2" class="w-8 h-8 animate-spin mb-3"></i>
+                    <p class="font-mono text-xs animate-pulse">Distilling document summary...</p>
+                </div>
+                <div class="asset-content"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="js/state.js"></script>
+<script src="js/assets.js"></script>
+<script src="js/app.js"></script>
+<script>lucide.createIcons();</script>
+
+</body>
+</html>

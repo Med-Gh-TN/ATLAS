@@ -1,0 +1,11 @@
+{
+  "prompt_injection_patterns": [
+    "(?i)ignore\\s+(all\\s+)?previous",
+    "(?i)jailbreak",
+    "(?i)forget\\s+(all\\s+)?instructions",
+    "(?i)system\\s+prompt",
+    "(?i)you\\s+are\\s+now",
+    "(?i)disregard",
+    "(?i)bypass\\s+(the\\s+)?rules"
+  ]
+}

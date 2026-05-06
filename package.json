@@ -1,0 +1,20 @@
+{
+  "name": "atlas-project-root",
+  "private": true,
+  "workspaces": [
+    "frontend"
+  ],
+  "overrides": {
+    "next": "16.2.1",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3"
+  },
+  "scripts": {
+    "dev": "npm run dev -w frontend",
+    "build": "npm run build -w frontend",
+    "start": "npm run start -w frontend",
+    "lint": "npm run lint -w frontend",
+    "typecheck": "npm run typecheck -w frontend",
+    "test:pdf-preview": "npm exec -w frontend -- playwright test tests/e2e/pdf-preview.spec.ts --project=chromium"
+  }
+}
