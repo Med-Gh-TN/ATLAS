@@ -28,7 +28,6 @@ from app.models.user import (
 from app.schemas.pagination import build_paginated_response
 
 from app.models.contribution import Contribution
-from app.models.collaboration import ForumPost, ForumReply, ForumVote, StudyGroup, StudyGroupMember, LiveSession, LearningPathJob
 from app.models.notification import Notification
 from app.models.progress import ReadingProgress
 from app.models.annotation import DocumentAnnotation
@@ -540,42 +539,28 @@ async def delete_user(
     if user.id == current_user.id:
         raise atlas_error("USER_003", "You cannot delete your own account.", status_code=400)
     
+    # Orphan contributions uploaded by this user
     await db.execute(
         update(Contribution)
         .where(Contribution.uploader_id == user_id)
         .values(uploader_id=None)
     )
     
-    await db.execute(
-        update(ForumPost)
-        .where(ForumPost.author_id == user_id)
-        .values(author_id=None)
-    )
-    await db.execute(
-        update(ForumReply)
-        .where(ForumReply.author_id == user_id)
-        .values(author_id=None)
-    )
-    
+    # Orphan annotations made by this user
     await db.execute(
         update(DocumentAnnotation)
         .where(DocumentAnnotation.user_id == user_id)
         .values(user_id=None)
     )
     
-    await db.execute(delete(ForumVote).where(ForumVote.user_id == user_id))
-    await db.execute(delete(StudyGroupMember).where(StudyGroupMember.user_id == user_id))
+    # Remove all user-owned data from remaining tables
     await db.execute(delete(UserStreak).where(UserStreak.user_id == user_id))
     await db.execute(delete(Notification).where(Notification.user_id == user_id))
     await db.execute(delete(ReadingProgress).where(ReadingProgress.user_id == user_id))
-    await db.execute(delete(LiveSession).where(LiveSession.teacher_id == user_id))
-    await db.execute(delete(LearningPathJob).where(LearningPathJob.user_id == user_id))
     await db.execute(delete(UserProfile).where(UserProfile.user_id == user_id))
     await db.execute(delete(TopicKnowledge).where(TopicKnowledge.user_id == user_id))
     await db.execute(delete(UserMemory).where(UserMemory.user_id == user_id))
     await db.execute(delete(LearningInsight).where(LearningInsight.user_id == user_id))
-    
-    await db.execute(delete(StudyGroup).where(StudyGroup.owner_id == user_id))
     
     await db.delete(user)
     await db.commit()

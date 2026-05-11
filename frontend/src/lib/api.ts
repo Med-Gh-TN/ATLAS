@@ -55,8 +55,6 @@ import type {
   UploadResponse,
   Summary,
   Mindmap,
-  ForumPost,
-  ForumReply,
   Report,
   Annotation,
   TeacherAnalytics,
@@ -754,8 +752,7 @@ export const ragApi = {
 
           buffer += decoder.decode(value, { stream: true });
           
-          // 🚨 SOTA FIX: Split strictly by SSE standard double newline delimiter
-          // This prevents internal \n characters in LLM responses (like markdown) from breaking JSON.parse
+          // Split strictly by SSE standard double newline delimiter
           const chunks = buffer.split("\n\n");
           
           // The last chunk might be incomplete (stream cut mid-transmission), keep it in buffer
@@ -1420,12 +1417,6 @@ export class WebSocketClient {
 
 export const wsClient = new WebSocketClient();
 
-export function createForumWebSocket(courseId: string): WebSocketClient {
-  const client = new WebSocketClient();
-  client.connect(`/ws/forum/${courseId}`);
-  return client;
-}
-
 export function createNotificationsWebSocket(userId: string): WebSocketClient {
   const client = new WebSocketClient();
   client.connect(`/ws/notifications/${userId}`);
@@ -1434,5 +1425,3 @@ export function createNotificationsWebSocket(userId: string): WebSocketClient {
 
 export { API_BASE_URL, WS_BASE_URL };
 export type { InternalAxiosRequestConfig };
-
-

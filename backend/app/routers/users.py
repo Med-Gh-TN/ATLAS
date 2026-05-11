@@ -13,7 +13,6 @@ from app.core.exceptions import atlas_error
 from app.db.session import get_session
 from app.dependencies import get_current_user
 from app.models.annotation import DocumentAnnotation
-from app.models.collaboration import ForumPost, ForumReply
 from app.models.contribution import Contribution
 from app.models.study_tools import FlashcardDeck, QuizSession
 from app.models.user import (
@@ -161,40 +160,17 @@ async def _build_public_profile(user: User, db: AsyncSession) -> dict[str, Any]:
         await db.execute(select(func.count(QuizSession.id)).where(QuizSession.student_id == user_id))
     ).scalar_one()
 
-    total_forum_posts = (
-        await db.execute(select(func.count(ForumPost.id)).where(ForumPost.author_id == user_id))
-    ).scalar_one()
+    # Forum stats removed — set to zero
+    total_forum_posts = 0
+    total_forum_replies = 0
+    total_interactions = 0
 
-    total_forum_replies = (
-        await db.execute(select(func.count(ForumReply.id)).where(ForumReply.author_id == user_id))
-    ).scalar_one()
-
-    total_interactions = int(total_forum_posts or 0) + int(total_forum_replies or 0)
-
-    # Recent activity: last 5 contributions and last 5 forum posts, merged
+    # Recent activity: last 5 contributions only (forum activity feed removed)
     recent_contributions = (
         await db.execute(
             select(Contribution)
             .where(Contribution.uploader_id == user_id)
             .order_by(desc(Contribution.created_at))
-            .limit(5)
-        )
-    ).scalars().all()
-
-    recent_posts = (
-        await db.execute(
-            select(ForumPost)
-            .where(ForumPost.author_id == user_id)
-            .order_by(desc(ForumPost.created_at))
-            .limit(5)
-        )
-    ).scalars().all()
-
-    recent_replies = (
-        await db.execute(
-            select(ForumReply)
-            .where(ForumReply.author_id == user_id)
-            .order_by(desc(ForumReply.created_at))
             .limit(5)
         )
     ).scalars().all()
@@ -208,22 +184,6 @@ async def _build_public_profile(user: User, db: AsyncSession) -> dict[str, Any]:
             "title": c.title,
             "description": f"Contribution with status {c.status}.",
             "created_at": c.created_at,
-        })
-    for p in recent_posts:
-        activity_feed.append({
-            "id": str(p.id),
-            "type": "FORUM_POST",
-            "title": p.title,
-            "description": "Started a discussion.",
-            "created_at": p.created_at,
-        })
-    for r in recent_replies:
-        activity_feed.append({
-            "id": str(r.id),
-            "type": "FORUM_REPLY",
-            "title": "Reply",
-            "description": "Replied to a discussion.",
-            "created_at": r.created_at,
         })
 
     activity_feed.sort(key=lambda x: x["created_at"], reverse=True)

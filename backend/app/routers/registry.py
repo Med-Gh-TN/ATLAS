@@ -1,3 +1,8 @@
+"""
+ATLAS v1 router registry.
+Legacy collaboration and forum routers have been retired.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -10,14 +15,11 @@ from app.routers.admin import router as admin_router
 from app.routers.annotations import router as annotations_router
 from app.routers.auth import router as auth_router
 from app.routers.collaboration import router as collaboration_router
-from app.routers.collaboration import ws_router as collaboration_ws_router
 from app.routers.contributions import router as contributions_router
 from app.routers.courses import router as courses_router
 from app.routers.files import router as files_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.student_dashboard import router as student_dashboard_router
-from app.routers.forums import router as forums_router
-from app.routers.forums import ws_router as forums_ws_router
 from app.routers.health import router as health_router
 from app.routers.learning import router as learning_router
 from app.routers.notifications import router as notifications_router
@@ -50,9 +52,9 @@ ACADEMIC_EXPERIENCE_ROUTERS = (
     RouterRegistration(annotations_router, ""),
 )
 
+# Community & Engagement — forums removed, collaboration kept for learning paths only
 COMMUNITY_AND_ENGAGEMENT_ROUTERS = (
     RouterRegistration(contributions_router, ""),
-    RouterRegistration(forums_router, ""),
     RouterRegistration(collaboration_router, ""),
     RouterRegistration(notifications_router, ""),
 )
@@ -65,10 +67,9 @@ OPERATIONS_AND_GOVERNANCE_ROUTERS = (
     RouterRegistration(users_router, ""),
 )
 
+# WebSocket routers: only notifications remain
 WEBSOCKET_ROUTERS = (
     notifications_ws_router,
-    forums_ws_router,
-    collaboration_ws_router,
 )
 
 

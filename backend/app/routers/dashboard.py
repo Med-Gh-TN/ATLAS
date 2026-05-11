@@ -15,7 +15,6 @@ from app.db.session import get_session
 from app.dependencies import require_role
 from app.models.all_models import Notification
 from app.models.annotation import DocumentAnnotation
-from app.models.collaboration import ForumPost, ForumReply
 from app.models.contribution import Contribution, DocumentVersion
 from app.models.course import Course
 from app.models.study_tools import FlashcardDeck, QuizSession
@@ -89,18 +88,9 @@ async def teacher_analytics(
         )
     ).scalar_one()
 
-    forum_posts = (
-        await db.execute(
-            select(func.count(ForumPost.id))
-            .where(ForumPost.author_id == current_user.id)
-        )
-    ).scalar_one()
-    forum_replies = (
-        await db.execute(
-            select(func.count(ForumReply.id))
-            .where(ForumReply.author_id == current_user.id)
-        )
-    ).scalar_one()
+    # Legacy forum stats removed; returned as 0
+    forum_posts = 0
+    forum_replies = 0
 
     weeks = 12
     trend_data = []
@@ -229,12 +219,8 @@ async def teacher_course_analytics(
         )
     ).scalar_one()
 
-    forum_posts = (
-        await db.execute(
-            select(func.count(ForumPost.id))
-            .where(ForumPost.course_id == course_id)
-        )
-    ).scalar_one()
+    # Legacy forum posts removed; set to 0
+    forum_posts = 0
 
     flashcard_decks = 0
     quiz_sessions = 0
@@ -325,10 +311,9 @@ async def admin_dashboard(
         await db.execute(select(func.count(QuizSession.id)).where(QuizSession.created_at >= week_start))
     ).scalar_one()
 
-    total_forum_posts = (await db.execute(select(func.count(ForumPost.id)))).scalar_one()
-    forum_posts_7d = (
-        await db.execute(select(func.count(ForumPost.id)).where(ForumPost.created_at >= week_start))
-    ).scalar_one()
+    # Legacy forum stats removed; set to 0
+    total_forum_posts = 0
+    forum_posts_7d = 0
 
     # Active users: distinct users with a StudySession in the last 7 days
     active_users_7d = (

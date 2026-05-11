@@ -631,14 +631,6 @@ export interface XRayMetadata {
   chunk_text: string;
 }
 
-export interface Vote {
-  id: string;
-  user_id: string;
-  target_type: "post" | "reply";
-  target_id: string;
-  value: 1 | -1;
-}
-
 export interface Report {
   id: string;
   type?: string;
@@ -724,12 +716,11 @@ export interface UserProfile {
   stats: {
     contributions_count: number;
     approved_contributions_count: number;
-    forum_posts_count: number;
     study_assets_count: number;
   };
   recent_activity: Array<{
     id: string;
-    type: "CONTRIBUTION" | "FORUM_POST";
+    type: "CONTRIBUTION";
     title: string;
     description: string;
     created_at: string;
@@ -782,99 +773,6 @@ export interface GenerationStatus {
   progress?: number;
   result?: unknown;
   error?: string;
-}
-
-export interface StudyGroup {
-  id: string;
-  name: string;
-  module: string;
-  module_id?: string;
-  description?: string;
-  owner_id: string;
-  owner_name?: string;
-  member_count: number;
-  max_members: number;
-  is_public: boolean;
-  invite_code?: string;
-  created_at: string;
-  last_active?: string;
-}
-
-export interface StudyGroupMember {
-  id: string;
-  group_id: string;
-  user_id: string;
-  user_name?: string;
-  role: "owner" | "member";
-  joined_at: string;
-}
-
-export interface SharedNote {
-  id: string;
-  group_id: string;
-  user_id: string;
-  user_name?: string;
-  title: string;
-  content: string;
-  updated_at: string;
-  is_pinned: boolean;
-}
-
-export interface GroupChatMessage {
-  id: string;
-  group_id: string;
-  user_id: string;
-  user_name?: string;
-  content: string;
-  created_at: string;
-  is_system?: boolean;
-}
-
-export interface LiveSession {
-  id: string;
-  title: string;
-  description?: string;
-  course_id?: string;
-  host_id: string;
-  host_name?: string;
-  status: "scheduled" | "live" | "ended";
-  scheduled_at?: string;
-  started_at?: string;
-  ended_at?: string;
-  max_participants?: number;
-  participant_count?: number;
-  recording_url?: string;
-}
-
-export interface LiveSessionParticipant {
-  id: string;
-  session_id: string;
-  user_id: string;
-  user_name?: string;
-  joined_at: string;
-  is_presenter?: boolean;
-}
-
-export interface ForumPost {
-  id: string;
-  title: string;
-  content: string;
-  author_id: string;
-  author_name: string;
-  course_id?: string;
-  created_at: string;
-  updated_at?: string;
-  replies_count: number;
-}
-
-export interface ForumReply {
-  id: string;
-  post_id: string;
-  content: string;
-  author_id: string;
-  author_name: string;
-  created_at: string;
-  updated_at?: string;
 }
 
 export interface InstantCourseResult {

@@ -2,6 +2,13 @@
  * @file frontend/src/hooks/use-swarm-stream.ts
  * @description Bi‑directional WebSocket bridge for Gemini Live API.
  * SOTA UPDATE: Adds thinking state detection.
+ * SOTA FIX: Transcript tokens now accumulate into a continuous paragraph
+ *           instead of stacking vertically. The "ATLAS:" prefix appears
+ *           only once per AI turn.
+ * SOTA UPDATE: StickyNotes payload now accepts four categories
+ *              (concepts, weaknesses, mastery, session_notes) from the
+ *              upgraded memory controller and maps them to the correct
+ *              StickyNote types.
  * @layer Side Effect
  * @dependencies react, @/store/live-sync.store, @/store/voice-settings.store,
  *              @/hooks/use-mic-capture, @/hooks/use-audio-sync
@@ -23,6 +30,10 @@ export function useSwarmStream(courseId: string) {
 
   const nextPlayTimeRef = useRef<number>(0);
   const audioChunkCountRef = useRef<number>(0);
+
+  // Track whether we are in the middle of an AI turn to avoid
+  // repeating the "ATLAS:" prefix on every streaming token.
+  const isAiTurnRef = useRef<boolean>(false);
 
   const {
     hydrateUi,
@@ -188,6 +199,7 @@ export function useSwarmStream(courseId: string) {
     setIsConnected(false);
     setAudioPlaying(false);
     setThinking(false);
+    isAiTurnRef.current = false;   // reset turn on disconnect
     console.log(
       "%c🛑 [Orchestrator] Swarm WebSocket Closed",
       "color: #ef4444; font-weight: bold;"
@@ -255,7 +267,26 @@ export function useSwarmStream(courseId: string) {
             "color: #3b82f6; font-weight: bold;",
             data.payload
           );
-          appendTranscript(`ATLAS: ${data.payload}\n`);
+
+          // Build the segment with clean spacing and a single "ATLAS:" prefix per turn
+          const rawTranscript = useLiveSyncStore.getState().transcript;
+          let segment = "";
+
+          if (!isAiTurnRef.current) {
+            // New AI turn
+            segment = `ATLAS: ${data.payload}`;
+            isAiTurnRef.current = true;
+          } else {
+            // Continuation of the current turn
+            const needsSpace =
+              rawTranscript.length > 0 &&
+              !/\s$/.test(rawTranscript) &&
+              !/^\s/.test(data.payload);
+            segment = needsSpace ? " " + data.payload : data.payload;
+          }
+
+          appendTranscript(segment);
+
           // Reset thinking timer on transcript arrival
           clearThinkingTimeout();
           scheduleThinking();
@@ -263,33 +294,62 @@ export function useSwarmStream(courseId: string) {
           const { component, props } = data.payload;
 
           if (component === "StickyNotes") {
+            const concepts: string[] = props?.concepts ?? [];
             const mastery: string[] = props?.mastery ?? [];
             const weaknesses: string[] = props?.weaknesses ?? [];
+            const sessionNotes: string = props?.session_notes ?? "";
             const now = Date.now();
 
-            const notes: StickyNote[] = [
-              ...mastery.map((concept, i) => ({
+            const notes: StickyNote[] = [];
+
+            // Map concepts → type "concept"
+            concepts.forEach((c, i) => {
+              notes.push({
+                id: `concept-${now}-${i}`,
+                type: "concept" as const,
+                content: c,
+                timestamp: now,
+              });
+            });
+
+            // Map mastery → type "mastery"
+            mastery.forEach((m, i) => {
+              notes.push({
                 id: `mastery-${now}-${i}`,
                 type: "mastery" as const,
-                content: `Mastered: ${concept}`,
+                content: m,
                 timestamp: now,
-              })),
-              ...weaknesses.map((concept, i) => ({
+              });
+            });
+
+            // Map weaknesses → type "weakness"
+            weaknesses.forEach((w, i) => {
+              notes.push({
                 id: `weakness-${now}-${i}`,
                 type: "weakness" as const,
-                content: `Focus: ${concept}`,
+                content: w,
                 timestamp: now,
-              })),
-            ];
+              });
+            });
+
+            // Map session_notes → type "summary"
+            if (sessionNotes && sessionNotes.trim()) {
+              notes.push({
+                id: `session-${now}`,
+                type: "summary" as const,
+                content: sessionNotes,
+                timestamp: now,
+              });
+            }
 
             if (notes.length > 0) {
               addStickyNotes(notes);
               console.groupCollapsed(
-                "%c🧠 [Node C] Memory Controller Extracted Insights",
+                "%c🧠 [Node C] Memory Controller — Academic Insights",
                 "color: #f59e0b; font-weight: bold;"
               );
               console.table(
-                notes.map((n) => ({ type: n.type, content: n.content }))
+                notes.map((n) => ({ type: n.type, content: n.content.substring(0, 60) }))
               );
               console.groupEnd();
             }
@@ -315,6 +375,7 @@ export function useSwarmStream(courseId: string) {
             stopSync();
             setAudioPlaying(false);
             setThinking(false);
+            isAiTurnRef.current = false;   // barge-in ends the current turn
             console.log(
               "%c⚡ [Barge-In] User interrupted. Audio flushed.",
               "color: #f59e0b; font-weight: bold;"

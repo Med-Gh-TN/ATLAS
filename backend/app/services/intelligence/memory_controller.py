@@ -1,8 +1,9 @@
 """
 @file backend/app/services/intelligence/memory_controller.py
-@description Lightweight Memory Controller using direct Gemma model calls (legacy protocol).
-Gemma models (gemma-4-*, gemma-3-*) do not support systemInstruction or JSON mode.
-We merge system prompt into user message and request text/plain.
+@description Memory Controller with Sovereign Edge routing.
+Primary: Kaggle Qwen3‑VL via VLLMClient.
+Fallback: Direct Gemma models (existing loop).
+SOTA UPDATE: Academic‑level extraction prompt (four‑category taxonomy).
 @layer Core Logic / State Persistence
 """
 
@@ -23,8 +24,35 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Reuse the application's engine (imported from session module)
+# Reuse the application's engine
 from app.db.session import engine
+
+
+# ── Academic‑grade extraction prompt ────────────────────────────────────────
+_EXTRACTION_SYSTEM_PROMPT = (
+    "You are the ATLAS Memory Controller, an expert academic cognition analyst. "
+    "Analyze the following tutoring transcript segment and extract the student's "
+    "cognitive state into FOUR arrays using PRECISE academic terminology:\n\n"
+    "1. 'concepts': Key concepts explicitly mentioned in the segment. "
+    "These are important definitions, models, or frameworks the student encountered. "
+    "Each entry should be the exact term or phrase (e.g., 'XML Schema Definition (XSD)', "
+    "'Time Complexity of Merge Sort').\n\n"
+    "2. 'weaknesses': Concepts the student is struggling with or asked for clarification on. "
+    "Phrase them as actionable focus areas (e.g., 'XSD validation rules and constraint syntax', "
+    "'Graph traversal edge cases').\n\n"
+    "3. 'mastery': Concepts the student demonstrated solid understanding of, "
+    "either by explaining them back correctly or answering confidently. "
+    "Phrase them as completed items (e.g., 'Well‑formed XML documents and basic tag nesting rules').\n\n"
+    "4. 'session_notes': A short summary of the session's current state or next steps "
+    "(e.g., 'Session started – covering XML fundamentals before moving to XSD schema definitions'). "
+    "Only include if the segment contains enough information to summarize.\n\n"
+    "Output strictly JSON format. No markdown, no preamble. "
+    'Example: {"concepts": ["Binary Search Tree (BST)"], '
+    '"weaknesses": ["Red‑Black Tree insertion balancing"], '
+    '"mastery": ["Pre‑order, in‑order, post‑order traversal"], '
+    '"session_notes": "Covering tree data structures – moving to AVL trees next"}'
+)
+
 
 class MemoryController:
     def __init__(self):
@@ -37,25 +65,41 @@ class MemoryController:
             "gemma-3-12b-it",
         ]
 
-    async def _call_model(self, prompt: str) -> str:
+    async def _call_model_via_kaggle(self, prompt: str) -> str:
         """
-        Call a Gemma model with the legacy plain‑text protocol.
-        System prompt is prepended to the user message because Gemma does not accept
-        the systemInstruction field. JSON mode is not available, so we request text/plain
-        and later strip any markdown fences.
+        Call the Kaggle Qwen3‑VL sovereign node through VLLMClient.
+        Returns the raw text response, or raises an exception on failure.
+        """
+        try:
+            from infrastructure.llm.vllm_client import VLLMClient
+
+            text = await VLLMClient.generate(
+                prompt=prompt,
+                system_instruction=_EXTRACTION_SYSTEM_PROMPT,
+                max_tokens=2048,
+            )
+            # Strip any markdown fences that may still slip through
+            text = re.sub(r"```(?:json)?\s*\n?", "", text)
+            text = text.replace("```", "").strip()
+            return text
+
+        except ImportError:
+            logger.warning("[Memory] VLLMClient not importable – falling back to direct Gemma.")
+            raise
+        except Exception as e:
+            logger.warning(f"[Memory] Kaggle call failed ({e}) – falling back to direct Gemma.")
+            raise
+
+    async def _call_model_direct_gemma(self, prompt: str) -> str:
+        """
+        Original direct Gemma fallback loop.
+        System prompt is prepended to the user message because Gemma does not
+        accept the systemInstruction field.
         """
         if not self.api_key:
             return ""
 
-        system_prompt = (
-            "You are the ATLAS Memory Controller. Analyze the following tutoring transcript segment. "
-            "Extract the student's cognitive state into two arrays: "
-            "1. 'mastery': Concepts the student clearly understands. "
-            "2. 'weaknesses': Concepts the student is struggling with. "
-            "Output strictly JSON format. No markdown, no preamble. "
-            'Example: {"mastery": ["Binary Trees"], "weaknesses": ["Graph Traversal"]}'
-        )
-        merged_prompt = f"{system_prompt}\n\n---\n\nUser Request:\n{prompt}"
+        merged_prompt = f"{_EXTRACTION_SYSTEM_PROMPT}\n\n---\n\nUser Request:\n{prompt}"
 
         for model in self.model_list:
             url = (
@@ -65,7 +109,7 @@ class MemoryController:
             payload = {
                 "contents": [{"role": "user", "parts": [{"text": merged_prompt}]}],
                 "generationConfig": {
-                    "responseMimeType": "text/plain",   # JSON mode is not supported by these Gemma models
+                    "responseMimeType": "text/plain",
                 },
             }
 
@@ -76,7 +120,6 @@ class MemoryController:
                             if resp.status == 200:
                                 data = await resp.json()
                                 text = data["candidates"][0]["content"]["parts"][0]["text"]
-                                # Strip markdown fences / extra whitespace
                                 text = re.sub(r"```(?:json)?\s*\n?", "", text)
                                 text = text.replace("```", "").strip()
                                 return text
@@ -90,17 +133,31 @@ class MemoryController:
                             else:
                                 body = await resp.text()
                                 logger.warning(f"[Memory] Model {model} returned {resp.status}: {body[:200]}")
-                                break  # Try next model in list
+                                break
                 except Exception as e:
                     logger.warning(f"[Memory] Model {model} exception: {e}")
-                    break  # Try next model
+                    break
         return ""
+
+    async def _call_model(self, prompt: str) -> str:
+        """
+        Primary: Kaggle Qwen node (sovereign edge).
+        Fallback: direct Gemma loop if the tunnel is down or an error occurs.
+        """
+        use_external = os.getenv("USE_EXTERNAL_GPU", "false").lower() == "true"
+        colab_url = os.getenv("COLAB_GPU_URL", "").strip()
+
+        if use_external and colab_url:
+            try:
+                return await self._call_model_via_kaggle(prompt)
+            except Exception:
+                pass  # Fall through to Gemma fallback
+
+        return await self._call_model_direct_gemma(prompt)
 
     async def extract_insights(self, transcript_segment: str) -> Dict[str, Any]:
         response_text = await self._call_model(transcript_segment)
         if response_text and len(response_text) > 5:
-            # Any remaining markdown fences are already stripped in _call_model,
-            # but keep this for safety
             clean = response_text.replace("```json", "").replace("```", "").strip()
             try:
                 return json.loads(clean)
@@ -117,14 +174,13 @@ class MemoryController:
     ) -> None:
         """
         Persist cognitive insights using a new async session.
-        Creates the table if missing (ideal for rapid prototyping).
+        Creates the table if missing.
         """
         async_session = sessionmaker(
             engine, class_=AsyncSession, expire_on_commit=False
         )
         async with async_session() as db:
             try:
-                # Ensure the table exists (migration would be better, but this is safe)
                 await db.execute(text("""
                     CREATE TABLE IF NOT EXISTS user_cognitive_insights (
                         id UUID PRIMARY KEY,
@@ -138,7 +194,6 @@ class MemoryController:
                 """))
                 await db.commit()
 
-                # Insert the new insight
                 await db.execute(
                     text("""
                         INSERT INTO user_cognitive_insights
@@ -160,4 +215,3 @@ class MemoryController:
             except Exception as e:
                 await db.rollback()
                 logger.error(f"[Memory] SQL error: {e}")
-            # Session closed automatically by context manager

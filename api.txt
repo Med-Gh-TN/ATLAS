@@ -1,0 +1,6946 @@
+ATLAS API (Omni-Architect)
+ 0.1.0 
+OAS 3.1
+/openapi.json
+
+Authorize
+Auth
+
+
+POST
+/api/v1/auth/register
+Register
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "email": "user@example.com",
+  "password": "stringst",
+  "full_name": "string",
+  "role": "STUDENT",
+  "filiere": "string",
+  "level": "L1",
+  "niveau": "L1",
+  "establishment_id": "string"
+}
+Responses
+Code	Description	Links
+201	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+POST
+/api/v1/auth/teacher-request
+Create Teacher Request
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "email": "user@example.com",
+  "password": "stringst",
+  "full_name": "string",
+  "department": "string"
+}
+Responses
+Code	Description	Links
+201	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/auth/registration-options
+Registration Options
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "universities": [
+    {
+      "id": "string",
+      "name": "string",
+      "domain": "string",
+      "is_authorized": true,
+      "created_at": "2026-05-10T20:12:03.266Z"
+    }
+  ],
+  "departments": [
+    {
+      "id": "string",
+      "name": "string",
+      "establishment_id": "string"
+    }
+  ],
+  "levels": [
+    "string"
+  ],
+  "majors": [
+    {
+      "id": "string",
+      "name": "string",
+      "department_id": "string",
+      "level": "string"
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/auth/majors/{department_id}
+Get Majors For Registration
+
+Public endpoint: list majors for a department (used by registration/upload forms).
+
+Parameters
+Try it out
+Name	Description
+department_id *
+string
+(path)
+department_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+[
+  {
+    "id": "string",
+    "name": "string",
+    "department_id": "string",
+    "level": "string"
+  }
+]
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+POST
+/api/v1/auth/verify-otp
+Verify Otp
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "email": "user@example.com",
+  "otp_code": "string",
+  "purpose": "ACCOUNT_ACTIVATION"
+}
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+POST
+/api/v1/auth/activate-teacher
+Activate Teacher
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "token": "stringstringstringstringstringst",
+  "password": "stringst"
+}
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+POST
+/api/v1/auth/login
+Login
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "email": "user@example.com",
+  "password": "stringst"
+}
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "accessToken": "string",
+  "refreshToken": "string",
+  "user": {
+    "id": "string",
+    "email": "string",
+    "role": "string",
+    "full_name": "string",
+    "filiere": "string",
+    "level": "string",
+    "niveau": "string",
+    "student_id": "string",
+    "program": "string",
+    "academic_year": "string",
+    "date_of_birth": "2026-05-10",
+    "gender": "string",
+    "phone_number": "string",
+    "address": "string",
+    "preferred_language": "string",
+    "profile_picture_url": "string",
+    "onboarding_completed": false,
+    "is_active": true,
+    "is_verified": true,
+    "status": "ACTIVE",
+    "trust_score": 0,
+    "profile_completeness": 0,
+    "push_notifications_enabled": true,
+    "email_digest_enabled": false,
+    "notification_types": [],
+    "is_rtl": false,
+    "establishment_id": "string",
+    "verified_at": "2026-05-10T20:12:03.313Z",
+    "created_at": "2026-05-10T20:12:03.313Z",
+    "username": "string"
+  }
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+POST
+/api/v1/auth/refresh
+Refresh
+
+
+GET
+/api/v1/auth/me
+Me
+
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "id": "string",
+  "email": "string",
+  "role": "string",
+  "full_name": "string",
+  "filiere": "string",
+  "level": "string",
+  "niveau": "string",
+  "student_id": "string",
+  "program": "string",
+  "academic_year": "string",
+  "date_of_birth": "2026-05-10",
+  "gender": "string",
+  "phone_number": "string",
+  "address": "string",
+  "preferred_language": "string",
+  "profile_picture_url": "string",
+  "onboarding_completed": false,
+  "is_active": true,
+  "is_verified": true,
+  "status": "ACTIVE",
+  "trust_score": 0,
+  "profile_completeness": 0,
+  "push_notifications_enabled": true,
+  "email_digest_enabled": false,
+  "notification_types": [],
+  "is_rtl": false,
+  "establishment_id": "string",
+  "verified_at": "2026-05-10T20:12:03.321Z",
+  "created_at": "2026-05-10T20:12:03.321Z",
+  "username": "string"
+}
+No links
+
+POST
+/api/v1/auth/logout
+Logout
+
+
+
+POST
+/api/v1/auth/forgot-password
+Forgot Password
+
+
+POST
+/api/v1/auth/reset-password
+Reset Password
+
+
+POST
+/api/v1/auth/resend-otp
+Resend Otp
+
+Health
+
+
+GET
+/api/v1/health
+Health Check
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+Courses
+
+
+POST
+/api/v1/courses/upload
+Upload Course
+
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+multipart/form-data
+major_id *
+string($uuid)
+course_id *
+string($uuid)
+course_type
+string
+language
+string
+academic_year *
+string
+file *
+string
+Responses
+Code	Description	Links
+202	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/courses
+List Courses
+
+
+Parameters
+Try it out
+Name	Description
+major_id
+string | (string | null)($uuid)
+(query)
+major_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+[
+  {
+    "additionalProp1": {}
+  }
+]
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/courses/my-uploads
+Get My Uploads
+
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+[
+  {
+    "additionalProp1": {}
+  }
+]
+No links
+
+GET
+/api/v1/courses/catalog
+List Course Catalog
+
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+[
+  {
+    "additionalProp1": {}
+  }
+]
+No links
+
+GET
+/api/v1/courses/{course_id}
+Get Course
+
+
+Parameters
+Try it out
+Name	Description
+course_id *
+string($uuid)
+(path)
+course_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+PATCH
+/api/v1/courses/{course_id}
+Update Course
+
+
+Parameters
+Try it out
+Name	Description
+course_id *
+string($uuid)
+(path)
+course_id
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "title": "string",
+  "description": "string",
+  "academic_year": "string",
+  "tags": [
+    "string"
+  ],
+  "level": "string"
+}
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+DELETE
+/api/v1/courses/{course_id}
+Delete Course
+
+
+Parameters
+Try it out
+Name	Description
+course_id *
+string($uuid)
+(path)
+course_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": true,
+  "additionalProp2": true,
+  "additionalProp3": true
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/courses/{course_id}/versions
+Get Course Versions
+
+
+Parameters
+Try it out
+Name	Description
+course_id *
+string($uuid)
+(path)
+course_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/courses/{course_id}/stats
+Get Course Stats
+
+
+Parameters
+Try it out
+Name	Description
+course_id *
+string($uuid)
+(path)
+course_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/courses/{course_id}/my-assets
+Get My Course Assets
+
+
+Return the existence status of each AI study tool asset for the current student and the given document version.
+
+Parameters
+Try it out
+Name	Description
+course_id *
+string($uuid)
+(path)
+course_id
+document_version_id *
+string($uuid)
+(query)
+Selected document version ID
+
+document_version_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/courses/{course_id}/download-url
+Get Course Download Url
+
+
+Parameters
+Try it out
+Name	Description
+course_id *
+string($uuid)
+(path)
+course_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/courses/{course_id}/preview
+Get Course Preview
+
+
+Parameters
+Try it out
+Name	Description
+course_id *
+string($uuid)
+(path)
+course_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/courses/versions/{version_id}
+Get Version
+
+
+Files
+
+
+GET
+/api/v1/files/proxy/{path}
+Proxy File
+
+
+[OMNI-ARCHITECT PIPELINE] Securely streams physical files from the Omni workspace volume to the frontend viewer.
+
+Parameters
+Try it out
+Name	Description
+path *
+string
+(path)
+path
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+"string"
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/files/pdf-view-url-by-path
+Get Pdf View Url By Path
+
+
+[OMNI-ARCHITECT PIPELINE] Returns the Next.js proxy URL so the frontend can securely route 'Open' and 'Download' button clicks.
+
+Parameters
+Try it out
+Name	Description
+path *
+string
+(query)
+path
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+"string"
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/files/pdf-view-url/{contribution_id}
+Get Pdf View Url
+
+
+[OMNI-ARCHITECT PIPELINE] Deprecated in favor of pdf-view-url-by-path.
+
+Parameters
+Try it out
+Name	Description
+contribution_id *
+string($uuid)
+(path)
+contribution_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+"string"
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+Search
+
+
+GET
+/api/v1/search
+Search
+
+
+Parameters
+Try it out
+Name	Description
+q
+string | (string | null)
+(query)
+q
+minLength: 1
+filiere
+string | (string | null)
+(query)
+filiere
+niveau
+string | (string | null)
+(query)
+niveau
+type
+string | (string | null)
+(query)
+type
+annee
+integer | (integer | null)
+(query)
+annee
+langue
+string | (string | null)
+(query)
+langue
+page
+integer
+(query)
+Default value : 1
+
+1
+minimum: 1
+limit
+integer
+(query)
+Default value : 20
+
+20
+maximum: 100
+minimum: 1
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "items": [
+    {
+      "document_version_id": "string",
+      "course_id": "string",
+      "title": "string",
+      "teacher_name": "string",
+      "is_official": false,
+      "quality_score": 0,
+      "snippet": "string",
+      "tags": [
+        "string"
+      ],
+      "filiere": "string",
+      "level": "string",
+      "academic_year": "string",
+      "course_type": "string",
+      "language": "string",
+      "rrf_score": 0
+    }
+  ],
+  "page": 0,
+  "limit": 0,
+  "total": 0
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/search/autocomplete
+Autocomplete
+
+[OMNI-ARCHITECT PIVOT]: Bypassing Meilisearch. Using direct PostgreSQL ILIKE query on Course titles.
+
+Parameters
+Try it out
+Name	Description
+q *
+string
+(query)
+q
+minLength: 2
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+[
+  {
+    "course_id": "string",
+    "title": "string",
+    "type": "string"
+  }
+]
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/search/instant
+Instant Search
+
+Instant course search powered by Meilisearch. Returns lightweight course cards for the frontend search-as-you-type.
+
+Parameters
+Try it out
+Name	Description
+q *
+string
+(query)
+Search query for course title/description
+
+q
+minLength: 1
+limit
+integer
+(query)
+Default value : 10
+
+10
+maximum: 30
+minimum: 1
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+[
+  {
+    "course_id": "string",
+    "title": "string",
+    "level": "string",
+    "department_name": "string",
+    "academic_year": "string",
+    "description": "string"
+  }
+]
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+RAG
+
+
+GET
+/api/v1/rag/context/{course_id}
+Get Prewarmed Context
+
+
+Parameters
+Try it out
+Name	Description
+course_id *
+string
+(path)
+course_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "course_id": "string",
+  "context": "string"
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+POST
+/api/v1/rag/tutor-stream
+Stream Live Tutor
+
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "course_id": "string",
+  "message": "string"
+}
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+"string"
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+POST
+/api/v1/rag/sessions
+Create Session
+
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "course_id": "string",
+  "document_version_ids": [
+    "string"
+  ]
+}
+Responses
+Code	Description	Links
+201	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "id": "string",
+  "course_id": "string",
+  "message_count": 0,
+  "created_at": "2026-05-10T20:12:03.490Z",
+  "document_count": 0
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/rag/sessions/{session_id}
+Get Rag Session
+
+
+Parameters
+Try it out
+Name	Description
+session_id *
+string($uuid)
+(path)
+session_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "id": "string",
+  "course_id": "string",
+  "message_count": 0,
+  "created_at": "2026-05-10T20:12:03.496Z",
+  "document_count": 0
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+DELETE
+/api/v1/rag/sessions/{session_id}
+Delete Session
+
+
+Parameters
+Try it out
+Name	Description
+session_id *
+string($uuid)
+(path)
+session_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": true,
+  "additionalProp2": true,
+  "additionalProp3": true
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/rag/sessions/{session_id}/messages
+List Messages
+
+
+Parameters
+Try it out
+Name	Description
+session_id *
+string($uuid)
+(path)
+session_id
+limit
+integer
+(query)
+Default value : 50
+
+50
+offset
+integer
+(query)
+Default value : 0
+
+0
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "items": [
+    {
+      "id": "string",
+      "role": "string",
+      "content": "string",
+      "created_at": "2026-05-10T20:12:03.513Z",
+      "sources": []
+    }
+  ],
+  "meta": {
+    "total": 0,
+    "limit": 0,
+    "offset": 0,
+    "has_more": true
+  }
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+POST
+/api/v1/rag/sessions/{session_id}/messages
+Create Message
+
+
+Parameters
+Try it out
+Name	Description
+session_id *
+string($uuid)
+(path)
+session_id
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "content": "string"
+}
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+"string"
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/rag/sessions/{session_id}/canvas
+Get Canvas State
+
+
+Fetches the latest Generative UI state for the session.
+
+Parameters
+Try it out
+Name	Description
+session_id *
+string($uuid)
+(path)
+session_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "component": "string",
+  "props": {
+    "additionalProp1": {}
+  }
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+PUT
+/api/v1/rag/sessions/{session_id}/canvas
+Update Canvas State
+
+
+Saves the current UI Generative Board state. Replaces existing state to prevent DB bloat.
+
+Parameters
+Try it out
+Name	Description
+session_id *
+string($uuid)
+(path)
+session_id
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": true,
+  "additionalProp2": true,
+  "additionalProp3": true
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+Study
+
+
+POST
+/api/v1/flashcards/generate
+Generate Flashcards
+
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "course_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "document_version_ids": [
+    "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  ],
+  "num_cards": 10
+}
+Responses
+Code	Description	Links
+202	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/flashcards/decks
+List Flashcard Decks
+
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+[
+  {
+    "additionalProp1": {}
+  }
+]
+No links
+
+GET
+/api/v1/flashcards/decks/{deck_id}
+Get Flashcard Deck
+
+
+Parameters
+Try it out
+Name	Description
+deck_id *
+string($uuid)
+(path)
+deck_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/flashcards/due
+Get Due Flashcards
+
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+
+PATCH
+/api/v1/flashcards/{card_id}/review
+Review Flashcard
+
+
+Parameters
+Try it out
+Name	Description
+card_id *
+string($uuid)
+(path)
+card_id
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "rating": "AGAIN"
+}
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+POST
+/api/v1/quiz/generate
+Generate Quiz
+
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "course_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "document_version_ids": [
+    "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  ],
+  "num_questions": 10
+}
+Responses
+Code	Description	Links
+202	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/quiz/sessions
+List Quiz Sessions
+
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+[
+  {
+    "additionalProp1": {}
+  }
+]
+No links
+
+GET
+/api/v1/quiz/{quiz_id}
+Get Quiz
+
+
+Parameters
+Try it out
+Name	Description
+quiz_id *
+string($uuid)
+(path)
+quiz_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+POST
+/api/v1/quiz/{quiz_id}/submit
+Submit Quiz
+
+
+Parameters
+Try it out
+Name	Description
+quiz_id *
+string($uuid)
+(path)
+quiz_id
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "answers": {
+    "additionalProp1": "string",
+    "additionalProp2": "string",
+    "additionalProp3": "string"
+  }
+}
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+POST
+/api/v1/summaries/generate
+Generate Summary
+
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "course_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "document_version_ids": [
+    "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  ],
+  "format_type": "EXECUTIVE",
+  "target_lang": "fr"
+}
+Responses
+Code	Description	Links
+202	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/summaries/{summary_id}
+Get Summary
+
+
+Parameters
+Try it out
+Name	Description
+summary_id *
+string($uuid)
+(path)
+summary_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+POST
+/api/v1/mindmaps/generate
+Generate Mindmap
+
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "course_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "document_version_ids": [
+    "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  ],
+  "target_lang": "fr"
+}
+Responses
+Code	Description	Links
+202	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/mindmaps/{mindmap_id}
+Get Mindmap
+
+
+Parameters
+Try it out
+Name	Description
+mindmap_id *
+string($uuid)
+(path)
+mindmap_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/documents/{document_version_id}/assets/manifest
+Get Document Asset Manifest
+
+
+Parameters
+Try it out
+Name	Description
+document_version_id *
+string($uuid)
+(path)
+document_version_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/documents/{document_version_id}/assets/{asset_type}
+Get Document Asset
+
+
+Parameters
+Try it out
+Name	Description
+document_version_id *
+string($uuid)
+(path)
+document_version_id
+asset_type *
+string
+(path)
+asset_type
+target_lang
+string
+(query)
+Default value : fr
+
+fr
+profile
+string
+(query)
+Default value : default
+
+default
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+POST
+/api/v1/documents/{document_version_id}/assets/generate
+Generate Document Asset
+
+
+Parameters
+Try it out
+Name	Description
+document_version_id *
+string($uuid)
+(path)
+document_version_id
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "asset_type": "string",
+  "target_lang": "fr",
+  "profile": "default",
+  "force_regenerate": false
+}
+Responses
+Code	Description	Links
+202	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+Learning
+
+
+GET
+/api/v1/learn
+List Curriculum
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "pillars": [
+    {
+      "slug": "string",
+      "number": 0,
+      "title": "string",
+      "subtitle": "string",
+      "description": "string"
+    }
+  ],
+  "sota_available": true
+}
+No links
+
+GET
+/api/v1/learn/{slug}
+Get Lesson
+
+Parameters
+Try it out
+Name	Description
+slug *
+string
+(path)
+slug
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "slug": "string",
+  "title": "string",
+  "content": "string",
+  "prev_slug": "string",
+  "next_slug": "string"
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/learn/sota
+Get Sota
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+"string"
+No links
+Annotations
+
+
+POST
+/api/v1/annotations
+Create Annotation
+
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "document_version_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "page_number": 1,
+  "x": 0,
+  "y": 0,
+  "content": "string",
+  "is_public": true
+}
+Responses
+Code	Description	Links
+201	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/annotations
+List Annotations
+
+
+Parameters
+Try it out
+Name	Description
+doc_version_id *
+string($uuid)
+(query)
+doc_version_id
+limit
+integer
+(query)
+Default value : 20
+
+20
+maximum: 100
+minimum: 1
+offset
+integer
+(query)
+Default value : 0
+
+0
+minimum: 0
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+DELETE
+/api/v1/annotations/{annotation_id}
+Delete Annotation
+
+
+Parameters
+Try it out
+Name	Description
+annotation_id *
+string($uuid)
+(path)
+annotation_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": true,
+  "additionalProp2": true,
+  "additionalProp3": true
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+Contributions
+
+
+POST
+/api/v1/contributions
+Create Contribution
+
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+multipart/form-data
+title *
+string
+description
+string | (string | null)
+course_id *
+string($uuid)
+file *
+string
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+"string"
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+POST
+/api/v1/contributor-requests
+Create Contributor Request
+
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+multipart/form-data
+title *
+string
+description
+string | (string | null)
+course_id *
+string($uuid)
+file *
+string
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/contributor-requests/me
+Get My Contributor Request
+
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+
+GET
+/api/v1/contributions/me
+List My Contributions
+
+
+Parameters
+Try it out
+Name	Description
+status
+string | (string | null)
+(query)
+status
+limit
+integer
+(query)
+Default value : 20
+
+20
+maximum: 100
+minimum: 1
+offset
+integer
+(query)
+Default value : 0
+
+0
+minimum: 0
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/admin/contributor-requests
+List Contributor Requests
+
+
+Parameters
+Try it out
+Name	Description
+status
+string | (string | null)
+(query)
+status
+limit
+integer
+(query)
+Default value : 20
+
+20
+maximum: 100
+minimum: 1
+offset
+integer
+(query)
+Default value : 0
+
+0
+minimum: 0
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+POST
+/api/v1/admin/contributor-requests/{request_id}/approve
+Approve Contributor Request
+
+
+Parameters
+Try it out
+Name	Description
+request_id *
+string($uuid)
+(path)
+request_id
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "review_note": "string"
+}
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+POST
+/api/v1/admin/contributor-requests/{request_id}/reject
+Reject Contributor Request
+
+
+Parameters
+Try it out
+Name	Description
+request_id *
+string($uuid)
+(path)
+request_id
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "review_note": "string"
+}
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+POST
+/api/v1/reports
+Create Report
+
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "type": "string",
+  "title": "string",
+  "description": "string",
+  "severity": "string",
+  "screenshot_url": "string"
+}
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+DELETE
+/api/v1/contributions/{contribution_id}
+Delete Contribution
+
+
+Granular hard delete: removes a single contribution and its related data permanently. Only purges PostgreSQL relational data (Vectors managed by Cognitive Core).
+
+Parameters
+Try it out
+Name	Description
+contribution_id *
+string($uuid)
+(path)
+contribution_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": true,
+  "additionalProp2": true,
+  "additionalProp3": true
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+Collaboration
+
+
+POST
+/api/v1/learning-path/generate
+Generate Learning Path
+
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "goal": "string",
+  "course_ids": [],
+  "available_hours_per_week": 5
+}
+Responses
+Code	Description	Links
+202	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/learning-path/{job_id}
+Get Learning Path
+
+
+Parameters
+Try it out
+Name	Description
+job_id *
+string($uuid)
+(path)
+job_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+Notifications
+
+
+GET
+/api/v1/notifications
+List Notifications
+
+
+Parameters
+Try it out
+Name	Description
+limit
+integer
+(query)
+Default value : 20
+
+20
+maximum: 100
+minimum: 1
+offset
+integer
+(query)
+Default value : 0
+
+0
+minimum: 0
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "items": [
+    {
+      "id": "string",
+      "title": "string",
+      "message": "string",
+      "is_read": true,
+      "contribution_id": "string",
+      "created_at": "string"
+    }
+  ],
+  "meta": {
+    "total": 0,
+    "limit": 0,
+    "offset": 0,
+    "has_more": true
+  }
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+PATCH
+/api/v1/notifications/{notification_id}
+Read Notification
+
+
+Parameters
+Try it out
+Name	Description
+notification_id *
+string($uuid)
+(path)
+notification_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+Dashboard
+
+
+GET
+/api/v1/students/me/dashboard
+Student Dashboard
+
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "greeting": "string",
+  "progress": {
+    "overall_completion_percentage": 0,
+    "active_streak_days": 0,
+    "today_study_minutes": 0
+  },
+  "daily_goals": [
+    {
+      "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "description": "string",
+      "is_completed": true,
+      "priority": 0
+    }
+  ],
+  "recommended_courses": [
+    {
+      "course_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "title": "string",
+      "progress_percentage": 100,
+      "thumbnail_url": "string"
+    }
+  ],
+  "weak_topics": [
+    {
+      "topic_name": "string",
+      "accuracy_percentage": 100,
+      "suggested_action": "string"
+    }
+  ],
+  "suggested_flashcards": [
+    {
+      "deck_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "title": "string",
+      "due_cards_count": 0
+    }
+  ],
+  "weekly_activity": [
+    {
+      "day": "string",
+      "activities": 0
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/students/me/history
+Student History
+
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+[
+  {
+    "additionalProp1": {}
+  }
+]
+No links
+
+GET
+/api/v1/analytics/daily-activity
+Daily Activity
+
+
+Parameters
+Try it out
+Name	Description
+days
+integer
+(query)
+Default value : 365
+
+365
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+[
+  {
+    "additionalProp1": {}
+  }
+]
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/teacher/analytics
+Teacher Analytics
+
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+
+GET
+/api/v1/teacher/courses/{course_id}/analytics
+Teacher Course Analytics
+
+
+Parameters
+Try it out
+Name	Description
+course_id *
+string($uuid)
+(path)
+course_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/admin/dashboard
+Admin Dashboard
+
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+Admin
+
+
+GET
+/api/v1/admin/analytics/export
+Export Analytics Pdf
+
+
+Parameters
+Try it out
+Name	Description
+period
+string
+(query)
+Report period (monthly, weekly)
+
+Default value : monthly
+
+monthly
+lang
+string
+(query)
+Language for report
+
+Default value : en
+
+en
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+"string"
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/admin/majors
+List Majors
+
+
+Parameters
+Try it out
+Name	Description
+department_id
+string | (string | null)($uuid)
+(query)
+department_id
+level
+string | (string | null)
+(query)
+level
+include_archived
+boolean
+(query)
+Default value : false
+
+
+false
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+[
+  {
+    "id": "string",
+    "name": "string",
+    "department_id": "string",
+    "level": "string",
+    "created_at": "string",
+    "is_deleted": true
+  }
+]
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+POST
+/api/v1/admin/majors
+Create Major
+
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "name": "string",
+  "department_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "level": "string"
+}
+Responses
+Code	Description	Links
+201	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "id": "string",
+  "name": "string",
+  "department_id": "string",
+  "level": "string",
+  "created_at": "string",
+  "is_deleted": true
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+PATCH
+/api/v1/admin/majors/{major_id}
+Update Major
+
+
+Parameters
+Try it out
+Name	Description
+major_id *
+string($uuid)
+(path)
+major_id
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "name": "string",
+  "department_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "level": "string",
+  "is_deleted": true
+}
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "id": "string",
+  "name": "string",
+  "department_id": "string",
+  "level": "string",
+  "created_at": "string",
+  "is_deleted": true
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+DELETE
+/api/v1/admin/majors/{major_id}
+Delete Major
+
+
+Parameters
+Try it out
+Name	Description
+major_id *
+string($uuid)
+(path)
+major_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+"string"
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/admin/departments
+List Departments
+
+
+Parameters
+Try it out
+Name	Description
+include_archived
+boolean
+(query)
+Default value : false
+
+
+false
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+[
+  {
+    "additionalProp1": {}
+  }
+]
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+POST
+/api/v1/admin/departments
+Create Department
+
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "name": "string"
+}
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+PATCH
+/api/v1/admin/departments/{department_id}
+Update Department
+
+
+Parameters
+Try it out
+Name	Description
+department_id *
+string($uuid)
+(path)
+department_id
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "name": "string",
+  "is_deleted": true
+}
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+DELETE
+/api/v1/admin/departments/{department_id}
+Delete Department
+
+
+Parameters
+Try it out
+Name	Description
+department_id *
+string($uuid)
+(path)
+department_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/admin/catalog/courses
+List Catalog Courses
+
+
+Parameters
+Try it out
+Name	Description
+include_archived
+boolean
+(query)
+Default value : false
+
+
+false
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+[
+  {
+    "additionalProp1": {}
+  }
+]
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+POST
+/api/v1/admin/catalog/courses
+Create Catalog Course
+
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "title": "string",
+  "description": "string",
+  "department_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "level": "string",
+  "academic_year": "string",
+  "major_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "filiere": "string"
+}
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+PATCH
+/api/v1/admin/catalog/courses/{course_id}
+Update Catalog Course
+
+
+Parameters
+Try it out
+Name	Description
+course_id *
+string($uuid)
+(path)
+course_id
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "title": "string",
+  "description": "string",
+  "department_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "level": "string",
+  "academic_year": "string",
+  "is_deleted": true,
+  "major_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "filiere": "string"
+}
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+DELETE
+/api/v1/admin/catalog/courses/{course_id}
+Delete Catalog Course
+
+
+Parameters
+Try it out
+Name	Description
+course_id *
+string($uuid)
+(path)
+course_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/admin/establishments
+List Establishments
+
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+[
+  {
+    "additionalProp1": {}
+  }
+]
+No links
+
+DELETE
+/api/v1/admin/users/{user_id}
+Delete User
+
+
+Parameters
+Try it out
+Name	Description
+user_id *
+string($uuid)
+(path)
+user_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": "string",
+  "additionalProp2": "string",
+  "additionalProp3": "string"
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+Superadmin
+
+
+GET
+/api/v1/superadmin/establishments
+List Establishments
+
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+[
+  {
+    "additionalProp1": {}
+  }
+]
+No links
+
+POST
+/api/v1/superadmin/establishments
+Create Establishment
+
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "name": "string",
+  "domain": "string"
+}
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+PATCH
+/api/v1/superadmin/establishments/{establishment_id}/toggle-authorization
+Toggle Establishment Authorization
+
+
+Parameters
+Try it out
+Name	Description
+establishment_id *
+string($uuid)
+(path)
+establishment_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+POST
+/api/v1/superadmin/admins
+Create Admin
+
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "full_name": "string",
+  "email": "string",
+  "password": "string",
+  "establishment_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+}
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/superadmin/dashboard/stats
+Get Dashboard Stats
+
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+
+GET
+/api/v1/superadmin/users
+List Users
+
+
+Parameters
+Try it out
+Name	Description
+role
+string | (string | null)
+(query)
+role
+establishment_id
+string | (string | null)($uuid)
+(query)
+establishment_id
+is_active
+boolean | (boolean | null)
+(query)
+
+--
+limit
+integer
+(query)
+Default value : 20
+
+20
+maximum: 100
+minimum: 1
+offset
+integer
+(query)
+Default value : 0
+
+0
+minimum: 0
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/superadmin/establishments/{establishment_id}
+Get Establishment
+
+
+Parameters
+Try it out
+Name	Description
+establishment_id *
+string($uuid)
+(path)
+establishment_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+PATCH
+/api/v1/superadmin/establishments/{establishment_id}
+Update Establishment
+
+
+Parameters
+Try it out
+Name	Description
+establishment_id *
+string($uuid)
+(path)
+establishment_id
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "name": "string",
+  "domain": "string"
+}
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+DELETE
+/api/v1/superadmin/establishments/{establishment_id}
+Delete Establishment
+
+
+Parameters
+Try it out
+Name	Description
+establishment_id *
+string($uuid)
+(path)
+establishment_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+PATCH
+/api/v1/superadmin/users/{user_id}
+Superadmin Update User
+
+
+Parameters
+Try it out
+Name	Description
+user_id *
+string($uuid)
+(path)
+user_id
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "full_name": "string",
+  "role": "string",
+  "is_active": true
+}
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+DELETE
+/api/v1/superadmin/users/{user_id}
+Superadmin Delete User
+
+
+Parameters
+Try it out
+Name	Description
+user_id *
+string($uuid)
+(path)
+user_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/superadmin/reports
+List Reports
+
+
+Parameters
+Try it out
+Name	Description
+status
+string | (string | null)
+(query)
+status
+limit
+integer
+(query)
+Default value : 20
+
+20
+maximum: 100
+minimum: 1
+offset
+integer
+(query)
+Default value : 0
+
+0
+minimum: 0
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+PATCH
+/api/v1/superadmin/reports/{report_id}
+Resolve Report
+
+
+Parameters
+Try it out
+Name	Description
+report_id *
+string($uuid)
+(path)
+report_id
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "action": "dismiss",
+  "note": "string"
+}
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+Users
+
+
+DELETE
+/api/v1/users/me
+Delete My Account
+
+
+Delete own account. This is a soft delete that marks the user as deleted.
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+
+PATCH
+/api/v1/users/me
+Update Me
+
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "full_name": "string",
+  "filiere": "string",
+  "level": "string",
+  "student_id": "string",
+  "program": "string",
+  "academic_year": "string",
+  "date_of_birth": "2026-05-10",
+  "gender": "string",
+  "phone_number": "string",
+  "address": "string",
+  "preferred_language": "string",
+  "profile_picture_url": "string",
+  "onboarding_completed": true,
+  "push_notifications_enabled": true,
+  "email_digest_enabled": true,
+  "notification_types": [
+    "string"
+  ],
+  "is_rtl": true
+}
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/users/{user_id}/profile
+Get Public Profile
+
+
+Public profile without XP, badges, or gamified activity.
+
+Parameters
+Try it out
+Name	Description
+user_id *
+string($uuid)
+(path)
+user_id
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+422	
+Validation Error
+
+Media type
+
+application/json
+Example Value
+Schema
+{
+  "detail": [
+    {
+      "loc": [
+        "string",
+        0
+      ],
+      "msg": "string",
+      "type": "string",
+      "input": "string",
+      "ctx": {}
+    }
+  ]
+}
+No links
+
+GET
+/api/v1/users/me/profile
+Get My Profile
+
+
+Current user's full profile (identical response shape).
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "additionalProp1": {}
+}
+No links
+System
+
+
+GET
+/health
+Health Check
+
+Satisfies container orchestration health probes and frontend checks.
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Code	Description	Links
+200	
+Successful Response
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+"string"
+No links
+
+Schemas
+AIGoalCollapse allobject
+A daily study goal suggested by the system or set by the user.
+
+idstringuuid
+descriptionstring
+is_completedboolean
+priorityCollapse all(integer | null)
+Any ofCollapse all(integer | null)
+#0integer
+#1null
+AccountStatusCollapse allstring
+EnumCollapse allarray
+#0"ACTIVE"
+#1"PENDING_VERIFICATION"
+#2"SUSPENDED"
+AdminCreateCollapse allobject
+full_namestring
+emailstring
+passwordstring
+establishment_idstringuuid
+AnnotationCreateRequestCollapse allobject
+document_version_idstringuuid
+page_numberinteger≥ 1
+xnumber
+ynumber
+contentstring≥ 1 characters
+is_publicCollapse allboolean
+Defaulttrue
+AuthUserResponseCollapse allobject
+idstring
+emailstring
+rolestring
+full_nameCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+filiereCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+levelCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+niveauCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+student_idCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+programCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+academic_yearCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+date_of_birthCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0stringdate
+#1null
+genderCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+phone_numberCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+addressCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+preferred_languageCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+profile_picture_urlCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+onboarding_completedCollapse allboolean
+Defaultfalse
+is_activeboolean
+is_verifiedboolean
+statusCollapse allstring
+EnumCollapse allarray
+#0"ACTIVE"
+#1"PENDING_VERIFICATION"
+#2"SUSPENDED"
+trust_scoreinteger
+profile_completenessinteger
+push_notifications_enabledCollapse allboolean
+Defaulttrue
+email_digest_enabledCollapse allboolean
+Defaultfalse
+notification_typesCollapse allarray<string>
+Itemsstring
+Defaultempty array
+is_rtlCollapse allboolean
+Defaultfalse
+establishment_idCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+verified_atCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0stringdate-time
+#1null
+created_atstringdate-time
+usernameCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+AutocompleteItemCollapse allobject
+course_idstring
+titlestring
+typeCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+Body_create_contribution_api_v1_contributions_postCollapse allobject
+titlestring
+descriptionCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+course_idstringuuid
+filestringmedia type: application/octet-stream
+Body_create_contributor_request_api_v1_contributor_requests_postCollapse allobject
+titlestring
+descriptionCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+course_idstringuuid
+filestringmedia type: application/octet-stream
+Body_upload_course_api_v1_courses_upload_postCollapse allobject
+major_idstringuuid
+course_idstringuuid
+course_typeCollapse allstring
+Default"LECTURE"
+languageCollapse allstring
+Default"FR"
+academic_yearstring
+filestringmedia type: application/octet-stream
+CanvasStateResponseCollapse allobject
+componentCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+propsCollapse allobject
+Additional propertiesallowed
+CatalogCourseCreateRequestCollapse allobject
+titlestring
+descriptionCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+department_idstringuuid
+levelstring
+academic_yearstring
+major_idCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0stringuuid
+#1null
+filiereCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+CatalogCourseUpdateRequestCollapse allobject
+titleCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+descriptionCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+department_idCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0stringuuid
+#1null
+levelCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+academic_yearCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+is_deletedCollapse all(boolean | null)
+Any ofCollapse all(boolean | null)
+#0boolean
+#1null
+major_idCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0stringuuid
+#1null
+filiereCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+ContextResponseCollapse allobject
+course_idstring
+contextstring
+ContributorRequestReviewRequestCollapse allobject
+review_noteCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+CourseRecommendationCollapse allobject
+A course recommended to the student based on their activity.
+
+course_idstringuuid
+titlestring
+progress_percentageinteger[0, 100]
+thumbnail_urlCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+CourseUpdateRequestCollapse allobject
+titleCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+descriptionCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+academic_yearCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+tagsCollapse all(array<string> | null)
+Any ofCollapse all(array<string> | null)
+#0Collapse allarray<string>
+Itemsstring
+#1null
+levelCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+CreateMessageRequestCollapse allobject
+contentstring
+CreateSessionRequestCollapse allobject
+course_idstring
+document_version_idsCollapse allarray<string>
+Itemsstring
+CurriculumListResponseCollapse allobject
+pillarsCollapse allarray<object>
+ItemsCollapse allobject
+slugstring
+numberinteger
+titlestring
+subtitlestring
+descriptionstring
+sota_availableboolean
+DashboardProgressCollapse allobject
+Aggregated study metrics for the student dashboard.
+
+overall_completion_percentageCollapse allinteger[0, 100]
+Overall course completion percentage across enrolled/active courses.
+
+Default0
+active_streak_daysCollapse allinteger
+Current daily study streak count from userstreak table.
+
+Default0
+today_study_minutesCollapse allinteger
+Minutes spent studying today (from readingprogress or session logs).
+
+Default0
+DepartmentCreateRequestCollapse allobject
+namestring
+DepartmentUpdateRequestCollapse allobject
+nameCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+is_deletedCollapse all(boolean | null)
+Any ofCollapse all(boolean | null)
+#0boolean
+#1null
+DocumentAssetGenerateRequestCollapse allobject
+asset_typestring
+target_langCollapse allstring
+Default"fr"
+profileCollapse allstring
+Default"default"
+force_regenerateCollapse allboolean
+Defaultfalse
+EstablishmentCreateCollapse allobject
+namestring
+domainstring
+EstablishmentUpdateCollapse allobject
+nameCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+domainCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+FlashcardGenerateRequestCollapse allobject
+course_idstringuuid
+document_version_idsCollapse allarray<string>
+Itemsstringuuid
+num_cardsCollapse allinteger[1, 20]
+Default10
+FlashcardReviewRequestCollapse allobject
+ratingCollapse allstring
+EnumCollapse allarray
+#0"AGAIN"
+#1"HARD"
+#2"GOOD"
+#3"EASY"
+ForgotPasswordRequestCollapse allobject
+emailstringemail
+HTTPValidationErrorCollapse allobject
+detailCollapse allarray<object>
+ItemsCollapse allobject
+locCollapse allarray<(string | integer)>
+ItemsCollapse all(string | integer)
+Any ofCollapse all(string | integer)
+#0string
+#1integer
+msgstring
+typestring
+inputany
+ctxobject
+InstantCourseResultCollapse allobject
+course_idstring
+titlestring
+levelstring
+department_namestring
+academic_yearstring
+descriptionstring
+LearningPathRequestCollapse allobject
+goalstring
+course_idsCollapse allarray<string>
+Itemsstring
+Defaultempty array
+available_hours_per_weekCollapse allinteger≥ 1
+Default5
+LessonResponseCollapse allobject
+slugstring
+titlestring
+contentstring
+prev_slugCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+next_slugCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+LoginRequestCollapse allobject
+emailstringemail
+passwordstring≥ 8 characters
+LoginResponseCollapse allobject
+accessTokenstring
+refreshTokenstring
+userCollapse allobject
+idstring
+emailstring
+rolestring
+full_nameCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+filiereCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+levelCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+niveauCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+student_idCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+programCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+academic_yearCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+date_of_birthCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0stringdate
+#1null
+genderCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+phone_numberCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+addressCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+preferred_languageCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+profile_picture_urlCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+onboarding_completedCollapse allboolean
+Defaultfalse
+is_activeboolean
+is_verifiedboolean
+statusCollapse allstring
+EnumCollapse allarray
+#0"ACTIVE"
+#1"PENDING_VERIFICATION"
+#2"SUSPENDED"
+trust_scoreinteger
+profile_completenessinteger
+push_notifications_enabledCollapse allboolean
+Defaulttrue
+email_digest_enabledCollapse allboolean
+Defaultfalse
+notification_typesCollapse allarray<string>
+Itemsstring
+Defaultempty array
+is_rtlCollapse allboolean
+Defaultfalse
+establishment_idCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+verified_atCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0stringdate-time
+#1null
+created_atstringdate-time
+usernameCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+MajorCreateCollapse allobject
+namestring
+department_idstringuuid
+levelstring
+MajorOutCollapse allobject
+idstring
+namestring
+department_idstring
+levelstring
+created_atstring
+is_deletedCollapse all(boolean | null)
+Any ofCollapse all(boolean | null)
+#0boolean
+#1null
+MajorUpdateCollapse allobject
+nameCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+department_idCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0stringuuid
+#1null
+levelCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+is_deletedCollapse all(boolean | null)
+Any ofCollapse all(boolean | null)
+#0boolean
+#1null
+MessageListResponseCollapse allobject
+itemsCollapse allarray<object>
+ItemsCollapse allobject
+idstring
+rolestring
+contentstring
+created_atstringdate-time
+sourcesCollapse allarray<object>
+ItemsCollapse allobject
+Additional propertiesallowed
+Defaultempty array
+metaCollapse allobject
+totalinteger
+limitinteger
+offsetinteger
+has_moreboolean
+MessageResponseCollapse allobject
+idstring
+rolestring
+contentstring
+created_atstringdate-time
+sourcesCollapse allarray<object>
+ItemsCollapse allobject
+Additional propertiesallowed
+Defaultempty array
+MindMapGenerateRequestCollapse allobject
+course_idstringuuid
+document_version_idsCollapse allarray<string>
+Itemsstringuuid
+target_langCollapse allstring
+Default"fr"
+NotificationItemCollapse allobject
+idstring
+titlestring
+messagestring
+is_readboolean
+contribution_idCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+created_atany
+NotificationListResponseCollapse allobject
+itemsCollapse allarray<object>
+ItemsCollapse allobject
+idstring
+titlestring
+messagestring
+is_readboolean
+contribution_idCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+created_atany
+metaCollapse allobject
+totalinteger
+limitinteger
+offsetinteger
+has_moreboolean
+OTPPurposeCollapse allstring
+EnumCollapse allarray
+#0"ACCOUNT_ACTIVATION"
+#1"TEACHER_ONBOARDING"
+#2"PASSWORD_RESET"
+PageMetaCollapse allobject
+totalinteger
+limitinteger
+offsetinteger
+has_moreboolean
+PillarInfoCollapse allobject
+slugstring
+numberinteger
+titlestring
+subtitlestring
+descriptionstring
+QuizGenerateRequestCollapse allobject
+course_idstringuuid
+document_version_idsCollapse allarray<string>
+Itemsstringuuid
+num_questionsCollapse allinteger[1, 15]
+Default10
+QuizSubmitRequestCollapse allobject
+answersCollapse allobject
+Additional propertiesstring
+RefreshResponseCollapse allobject
+accessTokenstring
+RegisterRequestCollapse allobject
+emailstringemail
+passwordstring≥ 8 characters
+full_nameCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+roleCollapse allstring
+EnumCollapse allarray
+#0"STUDENT"
+#1"TEACHER"
+#2"ADMIN"
+#3"SUPERADMIN"
+Default"STUDENT"
+filiereCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+levelCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0 StudentLevelExpand allstring
+#1null
+niveauCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0 StudentLevelExpand allstring
+#1null
+establishment_idCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+RegistrationDepartmentOptionCollapse allobject
+idstring
+namestring
+establishment_idstring
+RegistrationMajorOptionCollapse allobject
+idstring
+namestring
+department_idstring
+levelstring
+RegistrationOptionsResponseCollapse allobject
+universitiesCollapse allarray<object>
+ItemsCollapse allobject
+idstring
+namestring
+domainstring
+is_authorizedboolean
+created_atstringdate-time
+departmentsCollapse allarray<object>
+ItemsCollapse allobject
+idstring
+namestring
+establishment_idstring
+levelsCollapse allarray<string>
+Itemsstring
+majorsCollapse allarray<object>
+ItemsCollapse allobject
+idstring
+namestring
+department_idstring
+levelstring
+RegistrationUniversityOptionCollapse allobject
+idstring
+namestring
+domainstring
+is_authorizedboolean
+created_atstringdate-time
+ReportCreateRequestCollapse allobject
+typestring
+titlestring
+descriptionstring
+severityCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+screenshot_urlCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+ResendOtpRequestCollapse allobject
+emailstringemail
+purposeCollapse allstring
+EnumCollapse allarray
+#0"ACCOUNT_ACTIVATION"
+#1"TEACHER_ONBOARDING"
+#2"PASSWORD_RESET"
+Default"ACCOUNT_ACTIVATION"
+ResetPasswordRequestCollapse allobject
+emailstringemail
+otp_codestring6 characters
+passwordstring≥ 8 characters
+ResolveReportRequestCollapse allobject
+actionCollapse allstring
+Default"dismiss"
+noteCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+ReviewButtonCollapse allstring
+EnumCollapse allarray
+#0"AGAIN"
+#1"HARD"
+#2"GOOD"
+#3"EASY"
+SearchResponseCollapse allobject
+itemsCollapse allarray<object>
+ItemsCollapse allobject
+document_version_idstring
+course_idCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+titlestring
+teacher_nameCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+is_officialCollapse allboolean
+Defaultfalse
+quality_scoreCollapse all(number | null)
+Any ofCollapse all(number | null)
+#0number
+#1null
+Default0
+snippetstring
+tagsCollapse allarray<string>
+Itemsstring
+filiereCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+levelCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+academic_yearCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+course_typeCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+languageCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+rrf_scorenumber
+pageinteger
+limitinteger
+totalinteger
+SearchResultItemCollapse allobject
+document_version_idstring
+course_idCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+titlestring
+teacher_nameCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+is_officialCollapse allboolean
+Defaultfalse
+quality_scoreCollapse all(number | null)
+Any ofCollapse all(number | null)
+#0number
+#1null
+Default0
+snippetstring
+tagsCollapse allarray<string>
+Itemsstring
+filiereCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+levelCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+academic_yearCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+course_typeCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+languageCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+rrf_scorenumber
+SessionResponseCollapse allobject
+idstring
+course_idstring
+message_countinteger
+created_atstringdate-time
+document_countinteger
+SmartOverviewResponseCollapse allobject
+Complete student dashboard overview payload.
+
+greetingCollapse allstring
+Personalised welcome message (e.g., 'Welcome back, Alice!')
+
+progressCollapse allobject
+Aggregated study metrics for the student dashboard.
+
+overall_completion_percentageCollapse allinteger[0, 100]
+Overall course completion percentage across enrolled/active courses.
+
+Default0
+active_streak_daysCollapse allinteger
+Current daily study streak count from userstreak table.
+
+Default0
+today_study_minutesCollapse allinteger
+Minutes spent studying today (from readingprogress or session logs).
+
+Default0
+daily_goalsCollapse allarray<object>
+ItemsCollapse allobject
+A daily study goal suggested by the system or set by the user.
+
+idstringuuid
+descriptionstring
+is_completedboolean
+priorityCollapse all(integer | null)
+Any ofCollapse all(integer | null)
+#0integer
+#1null
+recommended_coursesCollapse allarray<object>
+ItemsCollapse allobject
+A course recommended to the student based on their activity.
+
+course_idstringuuid
+titlestring
+progress_percentageinteger[0, 100]
+thumbnail_urlCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+weak_topicsCollapse allarray<object>
+ItemsCollapse allobject
+A topic where the student has low accuracy, identified from quiz results.
+
+topic_namestring
+accuracy_percentageinteger[0, 100]
+suggested_actionstring
+suggested_flashcardsCollapse allarray<object>
+ItemsCollapse allobject
+A flashcard deck with due cards, suggested for review.
+
+deck_idstringuuid
+titlestring
+due_cards_countinteger
+weekly_activityCollapse all(array<object> | null)
+Any ofCollapse all(array<object> | null)
+#0Collapse allarray<object>
+ItemsCollapse allobject
+Aggregated study activity for a single day.
+
+daystring
+activitiesinteger
+#1null
+StudentLevelCollapse allstring
+EnumCollapse allarray
+#0"L1"
+#1"L2"
+#2"L3"
+#3"M1"
+#4"M2"
+#5"Doctorat"
+SuggestedFlashcardDeckCollapse allobject
+A flashcard deck with due cards, suggested for review.
+
+deck_idstringuuid
+titlestring
+due_cards_countinteger
+SummaryGenerateRequestCollapse allobject
+course_idstringuuid
+document_version_idsCollapse allarray<string>
+Itemsstringuuid
+format_typeCollapse allstring
+Default"EXECUTIVE"
+target_langCollapse allstring
+Default"fr"
+TeacherActivationRequestCollapse allobject
+tokenstring≥ 32 characters
+passwordstring≥ 8 characters
+TeacherRequestCreateCollapse allobject
+emailstringemail
+passwordstring≥ 8 characters
+full_nameCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+departmentstring[2, 120] characters
+TutorStreamRequestCollapse allobject
+course_idstring
+messagestring
+UserRoleCollapse allstring
+EnumCollapse allarray
+#0"STUDENT"
+#1"TEACHER"
+#2"ADMIN"
+#3"SUPERADMIN"
+ValidationErrorCollapse allobject
+locCollapse allarray<(string | integer)>
+ItemsCollapse all(string | integer)
+Any ofCollapse all(string | integer)
+#0string
+#1integer
+msgstring
+typestring
+inputany
+ctxobject
+VerifyOtpRequestCollapse allobject
+emailstringemail
+otp_codestring6 characters
+purposeCollapse allstring
+EnumCollapse allarray
+#0"ACCOUNT_ACTIVATION"
+#1"TEACHER_ONBOARDING"
+#2"PASSWORD_RESET"
+Default"ACCOUNT_ACTIVATION"
+WeakTopicCollapse allobject
+A topic where the student has low accuracy, identified from quiz results.
+
+topic_namestring
+accuracy_percentageinteger[0, 100]
+suggested_actionstring
+WeeklyActivityDataCollapse allobject
+Aggregated study activity for a single day.
+
+daystring
+activitiesinteger
+UserUpdateRequestCollapse allobject
+full_nameCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+roleCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+is_activeCollapse all(boolean | null)
+Any ofCollapse all(boolean | null)
+#0boolean
+#1null
+UserUpdateRequestCollapse allobject
+full_nameCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+filiereCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+levelCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+student_idCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+programCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+academic_yearCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+date_of_birthCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0stringdate
+#1null
+genderCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+phone_numberCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+addressCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+preferred_languageCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+profile_picture_urlCollapse all(string | null)
+Any ofCollapse all(string | null)
+#0string
+#1null
+onboarding_completedCollapse all(boolean | null)
+Any ofCollapse all(boolean | null)
+#0boolean
+#1null
+push_notifications_enabledCollapse all(boolean | null)
+Any ofCollapse all(boolean | null)
+#0boolean
+#1null
+email_digest_enabledCollapse all(boolean | null)
+Any ofCollapse all(boolean | null)
+#0boolean
+#1null
+notification_typesCollapse all(array<string> | null)
+Any ofCollapse all(array<string> | null)
+#0Collapse allarray<string>
+Itemsstring
+#1null
+is_rtlCollapse all(boolean | null)
+Any ofCollapse all(boolean | null)
+#0boolean
+#1null

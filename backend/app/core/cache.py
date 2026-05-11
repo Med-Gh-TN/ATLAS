@@ -38,33 +38,9 @@ WRITE_INVALIDATIONS: dict[str, CacheInvalidation] = {
         endpoint="PATCH /v1/flashcards/{id}/review",
         keys=("user_profile:*",),
     ),
-    "POST /v1/forums/posts/{id}/vote": CacheInvalidation(
-        endpoint="POST /v1/forums/posts/{id}/vote",
-        keys=("leaderboard:*",),
-    ),
     "PATCH /v1/admin/contributions/{id}": CacheInvalidation(
         endpoint="PATCH /v1/admin/contributions/{id}",
         keys=("admin_dashboard:*", "leaderboard:*"),
-    ),
-    "POST /v1/study-groups": CacheInvalidation(
-        endpoint="POST /v1/study-groups",
-        keys=("user_profile:*",),
-    ),
-    "POST /v1/study-groups/{id}/join": CacheInvalidation(
-        endpoint="POST /v1/study-groups/{id}/join",
-        keys=("user_profile:*",),
-    ),
-    "PATCH /v1/study-groups/{id}/notes": CacheInvalidation(
-        endpoint="PATCH /v1/study-groups/{id}/notes",
-        keys=("user_profile:*",),
-    ),
-    "POST /v1/live-sessions": CacheInvalidation(
-        endpoint="POST /v1/live-sessions",
-        keys=("admin_dashboard:*",),
-    ),
-    "DELETE /v1/live-sessions/{id}": CacheInvalidation(
-        endpoint="DELETE /v1/live-sessions/{id}",
-        keys=("admin_dashboard:*",),
     ),
 }
 

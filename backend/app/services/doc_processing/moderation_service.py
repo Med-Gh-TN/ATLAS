@@ -15,8 +15,6 @@ from app.models.all_models import (
     ContributionStatus, 
     Course,
     DocumentVersion,
-    XPTransaction, 
-    XPTransactionType,
     Notification,
     Department
 )
@@ -111,8 +109,9 @@ async def execute_contribution_review(
 ) -> Contribution:
     """
     Centralized state machine for contribution approvals/rejections.
-    Handles atomic XP crediting, mandatory rejection reasons, soft-deletions,
+    Handles mandatory rejection reasons, soft-deletions,
     and asynchronous side-effects (Search Indexing, Email/In-App notifications).
+    XP gamification has been removed as legacy.
     """
     # 1. Fetch the Target Contribution
     result = await session.execute(select(Contribution).where(Contribution.id == contribution_id))
@@ -139,7 +138,7 @@ async def execute_contribution_review(
             raise ValueError("A 'rejection_reason' is strictly required when rejecting or requesting a revision.")
         c.rejection_reason = rejection_reason.strip()
     
-    # 3. Handle APPROVED State & Gamification
+    # 3. Handle APPROVED State
     if status == ContributionStatus.APPROVED:
         c.rejection_reason = None  # Clear any previous rejection reasons
         c.status = ContributionStatus.APPROVED
@@ -150,25 +149,6 @@ async def execute_contribution_review(
             )
 
         session.add(c)
-
-        # DEFENSIVE ARCHITECTURE: Read-before-write to prevent duplicate XP exploitation
-        existing_xp = await session.execute(
-            select(XPTransaction).where(
-                XPTransaction.reference_id == c.id,
-                XPTransaction.transaction_type == XPTransactionType.APPROVAL
-            )
-        )
-        if not existing_xp.scalars().first():
-            # Gamification: Grant +30 XP contributor approval bonus
-            # (base +10 was already awarded at submission time)
-            xp = XPTransaction(
-                user_id=c.uploader_id,
-                amount=30,
-                transaction_type=XPTransactionType.APPROVAL,
-                reference_id=c.id,
-                description=f"Approval bonus for contribution: {c.title}"
-            )
-            session.add(xp)
         
         # If the document was previously soft-deleted, restore it
         await session.execute(
@@ -293,7 +273,7 @@ async def execute_contribution_review(
         
     except IntegrityError as e:
         await session.rollback()
-        logger.warning(f"Prevented duplicate XP exploit or race condition on contribution {c.id}: {str(e)}")
+        logger.warning(f"Prevented duplicate race condition on contribution {c.id}: {str(e)}")
         await session.refresh(c)
         return c
     except Exception as e:

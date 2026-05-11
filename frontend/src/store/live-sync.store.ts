@@ -2,6 +2,8 @@
  * @file frontend/src/store/live-sync.store.ts
  * @description Global state manager for the Multi-Agent Swarm.
  * SOTA UPDATE: Added thinking indicator and sticky notes.
+ * SOTA UPDATE: StickyNote type now includes "concept" and "summary"
+ *              to match the upgraded memory controller output.
  * @layer State Persistence
  * @dependencies zustand
  */
@@ -16,7 +18,7 @@ export interface SyncMark {
 
 export interface StickyNote {
   id: string;
-  type: "mastery" | "weakness";
+  type: "concept" | "mastery" | "weakness" | "summary";
   content: string;
   timestamp: number;
 }

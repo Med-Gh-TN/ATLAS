@@ -3,6 +3,7 @@
  * @description Dynamic rendering surface for Generative UI. Reacts instantly to LLM JSON payloads.
  * SOTA FIX: Replaced basic mindmap with a Semantic Virtual Board mimicking a high-contrast chalkboard.
  * Supports structured lists, grid layouts, and process flows driven entirely by JSON.
+ * SOTA UPDATE: Color theme map now matches new academic prompt (amber/rose instead of yellow/red).
  * @layer Core Logic / Presentation
  * @dependencies react, framer-motion, lucide-react, @/store/live-sync.store
  */
@@ -22,7 +23,7 @@ const THEME_MAP = {
     bg: "bg-sky-950/30",
     icon: "text-sky-400",
   },
-  yellow: {
+  amber: {
     text: "text-amber-200",
     border: "border-amber-400/40",
     bg: "bg-amber-950/30",
@@ -34,18 +35,12 @@ const THEME_MAP = {
     bg: "bg-emerald-950/30",
     icon: "text-emerald-400",
   },
-  red: {
+  rose: {
     text: "text-rose-300",
     border: "border-rose-400/40",
     bg: "bg-rose-950/30",
     icon: "text-rose-400",
   },
-  white: {
-    text: "text-slate-200",
-    border: "border-slate-500/40",
-    bg: "bg-slate-800/30",
-    icon: "text-slate-400",
-  }
 };
 
 type ThemeKey = keyof typeof THEME_MAP;
@@ -91,7 +86,8 @@ function VirtualBoard({ title, subtitle, sections = [], activeAnimations = {} }:
       {/* Dynamic Sections Grid */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {sections.map((section, index) => {
-          const theme = THEME_MAP[section.colorTheme || "white"] || THEME_MAP.white;
+          // Fallback to 'blue' if an unrecognised theme is passed
+          const theme = THEME_MAP[section.colorTheme || "blue"] || THEME_MAP.blue;
           const sectionId = section.id || `section_${index}`;
           
           // Check if sync engine triggered an animation for this specific section

@@ -49,13 +49,6 @@ from app.models.intelligence import (
     LearningStyle,
 )
 from app.models.collaboration import (
-    ForumPost,
-    ForumPostStatus,
-    ForumReply,
-    ForumVote,
-    StudyGroup,
-    StudyGroupMember,
-    LiveSession,
     LearningPathJob,
     LearningPathJobStatus,
 )
@@ -111,13 +104,6 @@ __all__ = [
     "LearningInsight",
     "LearningSpeed",
     "LearningStyle",
-    "ForumPost",
-    "ForumPostStatus",
-    "ForumReply",
-    "ForumVote",
-    "StudyGroup",
-    "StudyGroupMember",
-    "LiveSession",
     "LearningPathJob",
     "LearningPathJobStatus",
     "Major",

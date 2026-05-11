@@ -2,6 +2,7 @@
  * @file frontend/src/components/ui/sticky-notes.tsx
  * @description Visualizes background memory events (Node C) such as student weaknesses, extracted concepts, and summaries.
  * SOTA FIX: Removed hardcoded slate colors. Implemented semantic theme variables and refined Framer Motion spring physics.
+ * SOTA UPDATE: Notes now display newest first (reversed order).
  * @layer Core Logic / Presentation
  * @dependencies react, framer-motion, lucide-react
  */
@@ -54,10 +55,13 @@ const NOTE_STYLES: Record<NoteType, { border: string; bg: string; icon: React.Re
 };
 
 export function StickyNotes({ notes }: StickyNotesProps) {
+  // Reverse the notes array so newest entries appear first
+  const orderedNotes = React.useMemo(() => [...notes].reverse(), [notes]);
+
   return (
     <div className="flex h-full w-full flex-col gap-3 overflow-y-auto px-2 pb-2 custom-scrollbar">
       <AnimatePresence mode="popLayout">
-        {notes.length === 0 ? (
+        {orderedNotes.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -69,7 +73,7 @@ export function StickyNotes({ notes }: StickyNotesProps) {
             <p className="text-xs opacity-70">Insights will appear here automatically.</p>
           </motion.div>
         ) : (
-          notes.map((note) => {
+          orderedNotes.map((note) => {
             const style = NOTE_STYLES[note.type];
             return (
               <motion.div

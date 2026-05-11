@@ -3,6 +3,9 @@
 @description SOTA Gemini 3.1 Flash Live Orchestrator.
 Prompts now loaded from external Jinja2 templates under 
 backend/app/templates/prompts/tutor/ for rapid persona iteration.
+Tool definition for render_virtual_board upgraded to enforce academic structure.
+SOTA UPDATE: Sticky notes now forward all four cognitive categories
+(Key Concept, Focus Area, Mastered, Session Note) to the frontend.
 @layer Core Logic
 @dependencies asyncio, json, logging, os, websockets, pydantic, jinja2
 """
@@ -189,26 +192,66 @@ class SwarmOrchestrator:
                                     "functionDeclarations": [
                                         {
                                             "name": "render_virtual_board",
-                                            "description": "Renders a visual board ...",
+                                            "description": (
+                                                "Renders an academic knowledge board on the student's screen. "
+                                                "You MUST call this whenever you explain a distinct concept, "
+                                                "process, or list. Structure the board precisely as specified."
+                                            ),
                                             "parameters": {
                                                 "type": "OBJECT",
                                                 "properties": {
-                                                    "title": {"type": "STRING"},
-                                                    "subtitle": {"type": "STRING"},
+                                                    "title": {
+                                                        "type": "STRING",
+                                                        "description": "Main headline of the board (e.g., 'Introduction to XML')."
+                                                    },
+                                                    "subtitle": {
+                                                        "type": "STRING",
+                                                        "description": "Supporting tagline (e.g., 'The rulebook for structuring data')."
+                                                    },
                                                     "sections": {
                                                         "type": "ARRAY",
+                                                        "description": (
+                                                            "4-6 structured sections that decompose the concept. "
+                                                            "Each section must have a distinct color theme reflecting its academic role."
+                                                        ),
                                                         "items": {
                                                             "type": "OBJECT",
                                                             "properties": {
-                                                                "id": {"type": "STRING"},
-                                                                "title": {"type": "STRING"},
-                                                                "type": {"type": "STRING"},
-                                                                "items": {"type": "ARRAY", "items": {"type": "STRING"}},
-                                                                "colorTheme": {"type": "STRING"},
+                                                                "title": {
+                                                                    "type": "STRING",
+                                                                    "description": "Section name (max 8 words)."
+                                                                },
+                                                                "type": {
+                                                                    "type": "STRING",
+                                                                    "enum": ["list", "process", "grid"],
+                                                                    "description": (
+                                                                        "'list' for bullet points, "
+                                                                        "'process' for sequential steps, "
+                                                                        "'grid' for a 2-column layout."
+                                                                    )
+                                                                },
+                                                                "items": {
+                                                                    "type": "ARRAY",
+                                                                    "items": {"type": "STRING"},
+                                                                    "description": "Concise bullet items or steps (max 7 words each, using precise academic terminology)."
+                                                                },
+                                                                "colorTheme": {
+                                                                    "type": "STRING",
+                                                                    "enum": ["blue", "amber", "green", "rose"],
+                                                                    "description": (
+                                                                        "Color accent for the section. "
+                                                                        "blue: definitions, core concepts. "
+                                                                        "amber: comparisons, contrasts. "
+                                                                        "green: processes, workflows. "
+                                                                        "rose: examples, case studies, important notes."
+                                                                    )
+                                                                },
                                                             },
+                                                            "required": ["title", "type", "items", "colorTheme"],
                                                         },
                                                     },
                                                 },
+                                                "required": ["title", "subtitle", "sections"],
                                             },
                                         }
                                     ]
@@ -366,7 +409,7 @@ class SwarmOrchestrator:
                 await memory_bus.put(None)
 
         # ------------------------------------------------------------------
-        # NODE B: THE AUTONOMOUS UI AGENT
+        # NODE B: THE AUTONOMOUS UI AGENT (unchanged)
         # ------------------------------------------------------------------
         async def _run_node_b_ui():
             try:
@@ -411,7 +454,7 @@ class SwarmOrchestrator:
                 logger.error(f"[Node B] UI Loop Error: {e}", exc_info=True)
 
         # ------------------------------------------------------------------
-        # NODE C: THE MEMORY CONTROLLER
+        # NODE C: THE MEMORY CONTROLLER (UPDATED PAYLOAD HANDLER)
         # ------------------------------------------------------------------
         async def _run_node_c_memory():
             try:
@@ -426,27 +469,42 @@ class SwarmOrchestrator:
 
                 async def _process_memory(text_segment: str):
                     insights = await memory_agent.extract_insights(text_segment)
-                    if insights and (insights.get("mastery") or insights.get("weaknesses")):
-                        ui_payload = {
-                            "component": "StickyNotes",
-                            "props": {
-                                "mastery": insights.get("mastery", []),
-                                "weaknesses": insights.get("weaknesses", []),
-                            },
-                        }
-                        await out_queue.put(
-                            StreamEvent(
-                                event_type="ui_hydration",
-                                payload=ui_payload,
-                                timestamp_ms=_get_ms(),
-                            )
+                    # Build payload covering all four categories
+                    concepts = insights.get("concepts", [])
+                    weaknesses = insights.get("weaknesses", [])
+                    mastery = insights.get("mastery", [])
+                    session_notes = insights.get("session_notes", "")
+
+                    # Only push if at least one array has content
+                    has_content = bool(concepts or weaknesses or mastery or session_notes)
+                    if not has_content:
+                        return
+
+                    ui_payload = {
+                        "component": "StickyNotes",
+                        "props": {
+                            "concepts": concepts,
+                            "weaknesses": weaknesses,
+                            "mastery": mastery,
+                            "session_notes": session_notes,
+                        },
+                    }
+                    await out_queue.put(
+                        StreamEvent(
+                            event_type="ui_hydration",
+                            payload=ui_payload,
+                            timestamp_ms=_get_ms(),
                         )
-                        await memory_agent.persist_to_sql(
-                            student_id=student_id,
-                            course_id=course_id,
-                            insights=insights,
-                            transcript_segment=text_segment,
-                        )
+                    )
+                    await memory_agent.persist_to_sql(
+                        student_id=student_id,
+                        course_id=course_id,
+                        insights={
+                            "mastery": mastery,
+                            "weaknesses": weaknesses,
+                        },
+                        transcript_segment=text_segment,
+                    )
 
                 while True:
                     try:

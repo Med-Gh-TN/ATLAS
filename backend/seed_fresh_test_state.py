@@ -1,5 +1,4 @@
 import asyncio
-import json
 import os
 import uuid
 from datetime import UTC, datetime
@@ -40,38 +39,26 @@ async def ensure_establishment(conn: asyncpg.Connection, name: str, domain: str)
 
 
 async def ensure_department(conn: asyncpg.Connection, establishment_id: str, name: str) -> str:
+    # SOTA FIX: removed `allowed_levels`, added `is_deleted` (NOT NULL without default)
     existing = await conn.fetchrow(
         "SELECT id FROM department WHERE establishment_id = $1 AND name = $2 FOR UPDATE",
         establishment_id,
         name,
     )
 
-    default_levels = ["L1", "L2", "L3", "M1", "M2", "DOCTORAT"]
-    default_levels_json = json.dumps(default_levels)
-
     if existing:
-        await conn.execute(
-            """
-            UPDATE department
-            SET allowed_levels = $3
-            WHERE establishment_id = $1 AND name = $2
-            """,
-            establishment_id,
-            name,
-            default_levels_json,
-        )
+        # Department already exists; nothing to update
         return str(existing["id"])
 
     department_id = str(uuid.uuid4())
     await conn.execute(
         """
-        INSERT INTO department (id, name, establishment_id, allowed_levels, created_at)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO department (id, name, establishment_id, created_at, is_deleted)
+        VALUES ($1, $2, $3, $4, false)
         """,
         department_id,
         name,
         establishment_id,
-        default_levels_json,
         utc_now(),
     )
     return department_id
@@ -100,8 +87,8 @@ async def ensure_major(
     major_id = str(uuid.uuid4())
     await conn.execute(
         """
-        INSERT INTO major (id, name, department_id, level, created_at)
-        VALUES ($1, $2, $3, $4::courselevel, $5)
+        INSERT INTO major (id, name, department_id, level, created_at, is_deleted)
+        VALUES ($1, $2, $3, $4::courselevel, $5, false)
         """,
         major_id,
         name,
